@@ -6,6 +6,56 @@ from profiles.models import Profile
 from .geo import haversine_miles
 from .models import Job
 
+def job_list(request):
+    jobs = Job.objects.all()
+
+    title = request.GET.get('title')
+    skills = request.GET.get('skills')
+    location = request.GET.get('location')
+    salary_min = request.GET.get('salary_min')
+    salary_max = request.GET.get('salary_max')
+    remote = request.GET.get('remote')
+    visa = request.GET.get('visa_sponsorship')
+
+    if title:
+        jobs = jobs.filter(title__icontains=title)
+
+    if skills:
+        jobs = jobs.filter(skills__icontains=skills)
+
+    if location:
+        jobs = jobs.filter(location__icontains=location)
+
+    if salary_min:
+        jobs = jobs.filter(salary_min__gte=salary_min)
+
+    if salary_max:
+        jobs = jobs.filter(salary_max__lte=salary_max)
+
+    if remote in ['true', 'false']:
+        jobs = jobs.filter(is_remote=(remote == 'true'))
+
+    if visa in ['true', 'false']:
+        jobs = jobs.filter(visa_sponsorship=(visa == 'true'))
+
+    results = [
+        {
+            'id': job.id,
+            'title': job.title,
+            'skills': job.skills,
+            'location': job.location,
+            'salary_min': job.salary_min,
+            'salary_max': job.salary_max,
+            'is_remote': job.is_remote,
+            'visa_sponsorship': job.visa_sponsorship,
+        }
+        for job in jobs
+    ]
+
+    return JsonResponse({
+        'count': len(results),
+        'jobs': results,
+    })
 
 def job_map(request):
     """#7 page with the interactive Leaflet map. Jobs are loaded from map_data via JS."""

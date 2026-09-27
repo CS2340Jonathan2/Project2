@@ -58,3 +58,66 @@ class MapDataTests(TestCase):
         self.assertEqual(self.client.get(self.url, {'lat': 'abc', 'lng': 1}).status_code, 400)
         self.assertEqual(self.client.get(self.url, {'lat': 33}).status_code, 400)
         self.assertEqual(self.client.get(self.url, {'lat': 33, 'lng': -84, 'radius': -1}).status_code, 400)
+
+class JobFilterTests(TestCase):
+    def setUp(self):
+        Job.objects.create(
+            title='Software Engineer',
+            description='Backend role',
+            skills='Python Django',
+            location='Atlanta',
+            salary_min=90000,
+            salary_max=120000,
+            is_remote=True,
+            visa_sponsorship=True,
+            latitude=33.7490,
+            longitude=-84.3880,
+        )
+
+        Job.objects.create(
+            title='Data Analyst',
+            description='Analytics role',
+            skills='SQL Excel',
+            location='New York',
+            salary_min=70000,
+            salary_max=90000,
+            is_remote=False,
+            visa_sponsorship=False,
+            latitude=40.7128,
+            longitude=-74.0060,
+        )
+
+        self.url = reverse('jobs:job_list')
+
+    def titles(self, response):
+        return [job['title'] for job in response.json()['jobs']]
+
+    def test_filter_by_title(self):
+        response = self.client.get(self.url, {'title': 'software'})
+        self.assertEqual(self.titles(response), ['Software Engineer'])
+
+    def test_filter_by_skills(self):
+        response = self.client.get(self.url, {'skills': 'Python'})
+        self.assertEqual(self.titles(response), ['Software Engineer'])
+
+    def test_filter_by_location(self):
+        response = self.client.get(self.url, {'location': 'Atlanta'})
+        self.assertEqual(self.titles(response), ['Software Engineer'])
+
+    def test_filter_by_salary(self):
+        response = self.client.get(
+            self.url,
+            {'salary_min': 80000, 'salary_max': 130000}
+        )
+        self.assertEqual(self.titles(response), ['Software Engineer'])
+
+    def test_filter_by_remote(self):
+        response = self.client.get(self.url, {'remote': 'true'})
+        self.assertEqual(self.titles(response), ['Software Engineer'])
+
+    def test_filter_by_visa_sponsorship(self):
+        response = self.client.get(
+            self.url,
+            {'visa_sponsorship': 'true'}
+        )
+        self.assertEqual(self.titles(response), ['Software Engineer'])
