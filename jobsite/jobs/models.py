@@ -5,6 +5,9 @@ class Job(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     skills = models.TextField(blank=True)
+    preferred_education = models.CharField(max_length=200, blank=True)
+
+    company_name = models.CharField(max_length=200, blank=True)
     location = models.CharField(max_length=200)
 
     salary_min = models.IntegerField(null=True, blank=True)
