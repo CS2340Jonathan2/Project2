@@ -1,0 +1,327 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Job Cart | Job Board{% endblock title %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  .cart-page { width: min(1280px, calc(100% - 48px)); margin: 0 auto; padding: 42px 0 64px; }
+  .cart-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+  .cart-heading h1 { margin: 0 0 7px; color: #102A43; font-size: 30px; line-height: 1.15; }
+  .cart-heading p { margin: 0; color: #718096; font-size: 14px; }
+  .cart-actions, .view-switcher { display: flex; align-items: center; gap: 8px; }
+  .cart-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 40px; padding: 0 15px; border: 1px solid transparent; border-radius: 7px; font: 500 13px 'Inter', sans-serif; cursor: pointer; transition: background-color .15s, color .15s, border-color .15s; }
+  .cart-button-primary { background: #2563EB; color: #fff; }
+  .cart-button-primary:hover { background: #1D4ED8; }
+  .cart-button-dark { background: #102A43; color: #fff; }
+  .cart-button-dark:hover { background: #173F73; }
+  .cart-button-quiet { background: #fff; color: #486581; border-color: #D9E2EC; }
+  .cart-button-quiet:hover { color: #102A43; background: #F7F9FC; }
+  .compare-trigger[hidden] { display: none; }
+  .view-switcher { gap: 2px; padding: 3px; border: 1px solid #D9E2EC; border-radius: 8px; background: #fff; }
+  .view-switcher button { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #486581; font: 500 12px 'Inter', sans-serif; cursor: pointer; }
+  .view-switcher button[aria-pressed="true"] { background: #102A43; color: #fff; }
+  .add-form input, .add-form select, .add-form textarea { min-height: 40px; border: 1px solid #D9E2EC; border-radius: 6px; background: #F8FAFC; color: #102A43; font: 400 13px 'Inter', sans-serif; }
+  .add-form input:focus, .add-form select:focus, .add-form textarea:focus { outline: 3px solid rgba(37, 99, 235, .15); border-color: #2563EB; }
+  .cart-results { margin: 0 0 12px; color: #486581; font-size: 12px; }
+  .cart-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .cart-grid.is-compact { display: flex; flex-direction: column; gap: 10px; }
+  .cart-job { min-width: 0; padding: 20px; border: 1px solid #D9E2EC; border-radius: 8px; background: #fff; box-shadow: 0 2px 6px rgba(16, 42, 67, .035); }
+  .cart-job.is-selected { border-color: #3B82F6; box-shadow: 0 0 0 2px rgba(59, 130, 246, .13); }
+  .cart-job-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .cart-job-title { margin: 0 0 5px; color: #102A43; font-size: 17px; line-height: 1.3; }
+  .cart-job-company { margin: 0; color: #486581; font-size: 13px; font-weight: 500; }
+  .icon-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 34px; width: 34px; height: 34px; border: 0; border-radius: 6px; background: transparent; color: #8293A7; cursor: pointer; }
+  .icon-button:hover { background: #FFF1F2; color: #DC2626; }
+  .cart-job-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 18px 0; color: #486581; font-size: 12px; }
+  .cart-job-meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .cart-job-meta i { color: #8293A7; }
+  .cart-job-metrics { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #E7EDF4; border-radius: 6px; background: #F8FAFC; }
+  .metric-label { display: block; margin-bottom: 5px; color: #8293A7; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+  .metric-value { color: #16704A; font-size: 13px; font-weight: 600; }
+  .work-tag { display: inline-block; padding: 4px 9px; border-radius: 4px; background: #EFF6FF; color: #245084; font-size: 11px; font-weight: 600; }
+  .skills-block, .description-block { margin-top: 17px; }
+  .section-label { display: block; margin-bottom: 8px; color: #8293A7; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+  .skills-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .skill-tag { padding: 4px 8px; border-radius: 4px; background: #F1F5F9; color: #486581; font-size: 11px; }
+  .cart-job-description { display: -webkit-box; overflow: hidden; margin: 0; color: #61758A; font-size: 12px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; }
+  .cart-job-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 19px; padding-top: 14px; border-top: 1px solid #EDF1F5; }
+  .compare-check { display: inline-flex; align-items: center; gap: 8px; color: #486581; font-size: 12px; font-weight: 500; cursor: pointer; }
+  .compare-check input { width: 16px; height: 16px; accent-color: #2563EB; }
+  .saved-indicator { display: inline-flex; align-items: center; gap: 6px; color: #16704A; font-size: 11px; font-weight: 600; }
+  .cart-grid.is-compact .cart-job { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px 24px; padding: 15px 18px; }
+  .cart-grid.is-compact .cart-job-top { align-items: center; }
+  .cart-grid.is-compact .cart-job-meta { margin: 7px 0 0; }
+  .cart-grid.is-compact .cart-job-metrics, .cart-grid.is-compact .skills-block, .cart-grid.is-compact .description-block { display: none; }
+  .cart-grid.is-compact .cart-job-footer { grid-column: 1 / -1; margin-top: 0; padding-top: 10px; }
+  .cart-empty { padding: 56px 20px; border: 1px dashed #CBD5E1; border-radius: 8px; background: #fff; color: #718096; text-align: center; }
+  .cart-empty i { margin-bottom: 14px; color: #9FB3C8; font-size: 30px; }
+  .cart-empty h2 { margin: 0 0 6px; color: #334E68; font-size: 17px; }
+  .cart-empty p { margin: 0; font-size: 13px; }
+  .cart-modal { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(15, 23, 42, .62); }
+  .cart-modal[hidden] { display: none; }
+  .modal-panel { display: flex; flex-direction: column; width: min(960px, 100%); max-height: 90vh; overflow: hidden; border-radius: 10px; background: #fff; box-shadow: 0 24px 80px rgba(15, 23, 42, .25); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 24px; border-bottom: 1px solid #E7EDF4; background: #F8FAFC; }
+  .modal-header h2 { margin: 0 0 5px; color: #102A43; font-size: 19px; }
+  .modal-header p { margin: 0; color: #718096; font-size: 12px; }
+  .modal-body { overflow: auto; padding: 22px; }
+  .compare-table { width: 100%; min-width: 580px; border-collapse: collapse; text-align: left; font-size: 12px; }
+  .compare-table th, .compare-table td { padding: 12px; border-bottom: 1px solid #E7EDF4; vertical-align: top; }
+  .compare-table th { background: #F8FAFC; color: #334E68; }
+  .compare-table th:first-child, .compare-table td:first-child { width: 150px; color: #61758A; font-weight: 600; }
+  .add-form { display: grid; gap: 14px; padding: 22px 24px; }
+  .add-form label { display: grid; gap: 6px; color: #486581; font-size: 11px; font-weight: 600; }
+  .add-form input, .add-form select, .add-form textarea { width: 100%; padding: 9px 11px; }
+  .add-form textarea { resize: vertical; }
+  .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .add-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+  .cart-notice { position: fixed; z-index: 60; right: 20px; bottom: 20px; max-width: calc(100vw - 40px); padding: 12px 16px; border-radius: 6px; background: #102A43; color: #fff; font-size: 13px; box-shadow: 0 6px 18px rgba(16, 42, 67, .2); }
+  .cart-notice[hidden] { display: none; }
+  @media (max-width: 1000px) { .cart-page { width: min(100% - 40px, 800px); } .cart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 680px) {
+    .cart-page { width: calc(100% - 32px); padding: 28px 0 44px; }
+    .cart-heading { align-items: flex-start; flex-direction: column; }
+    .cart-actions { flex-wrap: wrap; width: 100%; }
+    .cart-grid { grid-template-columns: 1fr; }
+    .cart-grid.is-compact .cart-job { grid-template-columns: minmax(0, 1fr); }
+    .cart-grid.is-compact .cart-job-footer { grid-column: auto; }
+    .form-row { grid-template-columns: 1fr; }
+    .modal-header { padding: 16px; }
+    .modal-body { padding: 12px; }
+  }
+</style>
+
+<section class="cart-page" aria-labelledby="cart-title">
+  <header class="cart-heading">
+    <div>
+      <h1 id="cart-title">Job cart</h1>
+      <p>Roles you want to compare, revisit, and apply for.</p>
+    </div>
+    <div class="cart-actions">
+      <button id="compareBarBtn" type="button" class="cart-button cart-button-primary compare-trigger" hidden>
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+        <span>Compare selected (<span id="compareCount">0</span>)</span>
+      </button>
+      <div class="view-switcher" role="group" aria-label="Job display mode">
+        <button id="btnGridView" type="button" aria-pressed="true"><i class="fa-solid fa-border-all" aria-hidden="true"></i> Cards</button>
+        <button id="btnRowView" type="button" aria-pressed="false"><i class="fa-solid fa-list" aria-hidden="true"></i> Compact</button>
+      </div>
+      <button id="openAddModal" type="button" class="cart-button cart-button-dark"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add job</button>
+    </div>
+  </header>
+
+  <p class="cart-results" id="resultsCount" aria-live="polite"></p>
+  <div id="jobsContainer" class="cart-grid"></div>
+  <section id="emptyState" class="cart-empty" hidden>
+    <i class="fa-solid fa-box-open" aria-hidden="true"></i>
+    <h2>No saved jobs found</h2>
+    <p>Add jobs to your cart to compare and revisit them here.</p>
+  </section>
+</section>
+
+<div id="compareModal" class="cart-modal" role="dialog" aria-modal="true" aria-labelledby="compareTitle" hidden>
+  <section class="modal-panel">
+    <header class="modal-header">
+      <div><h2 id="compareTitle">Job comparison</h2><p>Compare key details side by side.</p></div>
+      <button type="button" class="icon-button" data-close="compareModal" aria-label="Close comparison"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </header>
+    <div id="compareTableContainer" class="modal-body"></div>
+  </section>
+</div>
+
+<div id="addModal" class="cart-modal" role="dialog" aria-modal="true" aria-labelledby="addTitle" hidden>
+  <section class="modal-panel">
+    <header class="modal-header">
+      <div><h2 id="addTitle">Add a job to your cart</h2><p>Save a role to compare or revisit later.</p></div>
+      <button type="button" class="icon-button" data-close="addModal" aria-label="Close add job form"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </header>
+    <form id="addJobForm" class="add-form">
+      <label>Job title<input id="newTitle" name="title" required maxlength="120" placeholder="e.g. Frontend Developer"></label>
+      <div class="form-row">
+        <label>Company<input id="newCompany" name="company" required maxlength="120" placeholder="Company name"></label>
+        <label>Location<input id="newLocation" name="location" required maxlength="120" placeholder="City, state / Remote"></label>
+      </div>
+      <div class="form-row">
+        <label>Salary range<input id="newSalary" name="salary" maxlength="80" placeholder="e.g. $85k - $100k"></label>
+        <label>Work type<select id="newWorkType" name="workType"><option>On-site</option><option>Hybrid</option><option>Remote</option></select></label>
+      </div>
+      <label>Skills, comma separated<input id="newSkills" name="skills" maxlength="240" placeholder="e.g. React, JavaScript, Figma"></label>
+      <label>Description / notes<textarea id="newDesc" name="description" rows="3" maxlength="600" placeholder="Brief details about the role or requirements"></textarea></label>
+      <div class="add-actions">
+        <button type="button" class="cart-button cart-button-quiet" data-close="addModal">Cancel</button>
+        <button type="submit" class="cart-button cart-button-primary">Save to cart</button>
+      </div>
+    </form>
+  </section>
+</div>
+<div id="cartNotice" class="cart-notice" role="status" aria-live="polite" hidden></div>
+
+{{ cart_jobs|json_script:"initial-cart-jobs" }}
+<script>
+  (() => {
+    const storageKey = 'jobsite-saved-jobs-v1';
+    const seedJobs = JSON.parse(document.getElementById('initial-cart-jobs').textContent);
+    const selectedForCompare = new Set();
+    let viewMode = 'grid';
+    let jobs;
+    try {
+      const storedJobs = JSON.parse(localStorage.getItem(storageKey));
+      jobs = Array.isArray(storedJobs) ? storedJobs : seedJobs;
+    } catch {
+      jobs = seedJobs;
+    }
+
+    const container = document.getElementById('jobsContainer');
+    const emptyState = document.getElementById('emptyState');
+    const notice = document.getElementById('cartNotice');
+    let noticeTimeout;
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      })[character]);
+    }
+
+    function persistJobs() {
+      localStorage.setItem(storageKey, JSON.stringify(jobs));
+    }
+
+    function showNotice(message) {
+      notice.textContent = message;
+      notice.hidden = false;
+      window.clearTimeout(noticeTimeout);
+      noticeTimeout = window.setTimeout(() => { notice.hidden = true; }, 2600);
+    }
+
+    function jobCard(job) {
+      const selected = selectedForCompare.has(String(job.id));
+      const skills = (job.skills || []).map(skill => `<span class="skill-tag">${escapeHtml(skill)}</span>`).join('');
+      return `<article class="cart-job${selected ? ' is-selected' : ''}">
+        <div class="cart-job-top">
+          <div><h2 class="cart-job-title">${escapeHtml(job.title)}</h2><p class="cart-job-company">${escapeHtml(job.company)}</p></div>
+          <button type="button" class="icon-button" data-remove="${escapeHtml(job.id)}" aria-label="Remove ${escapeHtml(job.title)} from cart" title="Remove from cart"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>
+        </div>
+        <div class="cart-job-meta"><span><i class="fa-solid fa-location-dot" aria-hidden="true"></i>${escapeHtml(job.location)}</span></div>
+        <div class="cart-job-metrics">
+          <div><span class="metric-label">Compensation</span><span class="metric-value">${escapeHtml(job.salary || 'Unspecified')}</span></div>
+          <div><span class="metric-label">Work setup</span><span class="work-tag">${escapeHtml(job.workType)}</span></div>
+        </div>
+        <div class="skills-block"><span class="section-label">Key skills</span><div class="skills-list">${skills || '<span class="skill-tag">Not specified</span>'}</div></div>
+        <div class="description-block"><span class="section-label">Description</span><p class="cart-job-description">${escapeHtml(job.desc || 'No description provided.')}</p></div>
+        <footer class="cart-job-footer">
+          <label class="compare-check"><input type="checkbox" data-compare="${escapeHtml(job.id)}" ${selected ? 'checked' : ''}><span>Compare</span></label>
+          <span class="saved-indicator"><span>Saved</span><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+        </footer>
+      </article>`;
+    }
+
+    function renderJobs() {
+      container.classList.toggle('is-compact', viewMode === 'row');
+      container.innerHTML = jobs.map(jobCard).join('');
+      container.hidden = jobs.length === 0;
+      emptyState.hidden = jobs.length !== 0;
+      document.getElementById('resultsCount').textContent = `${jobs.length} saved ${jobs.length === 1 ? 'job' : 'jobs'}`;
+      document.getElementById('compareCount').textContent = selectedForCompare.size;
+      document.getElementById('compareBarBtn').hidden = selectedForCompare.size === 0;
+    }
+
+    function showModal(id) {
+      document.getElementById(id).hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function hideModal(id) {
+      document.getElementById(id).hidden = true;
+      if (document.querySelectorAll('.cart-modal:not([hidden])').length === 0) document.body.style.overflow = '';
+    }
+
+    function openCompare() {
+      const selectedJobs = jobs.filter(job => selectedForCompare.has(String(job.id)));
+      if (!selectedJobs.length) return;
+      const rows = [
+        ['Company', job => job.company],
+        ['Location', job => job.location],
+        ['Work setup', job => job.workType],
+        ['Salary / rate', job => job.salary || 'Unspecified'],
+        ['Key skills', job => (job.skills || []).join(', ') || 'Not specified'],
+        ['Description', job => job.desc || 'No description provided.']
+      ];
+      document.getElementById('compareTableContainer').innerHTML = `<table class="compare-table"><thead><tr><th>Criteria</th>${selectedJobs.map(job => `<th>${escapeHtml(job.title)}</th>`).join('')}</tr></thead><tbody>${rows.map(([label, value]) => `<tr><td>${label}</td>${selectedJobs.map(job => `<td>${escapeHtml(value(job))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+      showModal('compareModal');
+    }
+
+    document.getElementById('btnGridView').addEventListener('click', event => {
+      viewMode = 'grid';
+      document.getElementById('btnGridView').setAttribute('aria-pressed', 'true');
+      document.getElementById('btnRowView').setAttribute('aria-pressed', 'false');
+      renderJobs();
+    });
+    document.getElementById('btnRowView').addEventListener('click', () => {
+      viewMode = 'row';
+      document.getElementById('btnGridView').setAttribute('aria-pressed', 'false');
+      document.getElementById('btnRowView').setAttribute('aria-pressed', 'true');
+      renderJobs();
+    });
+    document.getElementById('openAddModal').addEventListener('click', () => showModal('addModal'));
+    document.getElementById('compareBarBtn').addEventListener('click', openCompare);
+
+    container.addEventListener('click', event => {
+      const removeButton = event.target.closest('[data-remove]');
+      if (!removeButton) return;
+      const id = removeButton.dataset.remove;
+      jobs = jobs.filter(job => String(job.id) !== id);
+      selectedForCompare.delete(id);
+      persistJobs();
+      renderJobs();
+      showNotice('Job removed from your cart.');
+    });
+
+    container.addEventListener('change', event => {
+      const checkbox = event.target.closest('[data-compare]');
+      if (!checkbox) return;
+      const id = checkbox.dataset.compare;
+      if (checkbox.checked && selectedForCompare.size >= 3) {
+        checkbox.checked = false;
+        showNotice('Select up to three jobs to compare.');
+        return;
+      }
+      if (checkbox.checked) selectedForCompare.add(id);
+      else selectedForCompare.delete(id);
+      renderJobs();
+    });
+
+    document.getElementById('addJobForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      const salary = String(form.get('salary')).trim() || 'Unspecified';
+      const newJob = {
+        id: `custom-${Date.now()}`,
+        title: String(form.get('title')).trim(),
+        company: String(form.get('company')).trim(),
+        location: String(form.get('location')).trim(),
+        salary,
+        salaryNum: Number(salary.replace(/[^0-9.]/g, '')) || 0,
+        workType: String(form.get('workType')),
+        skills: String(form.get('skills')).split(',').map(skill => skill.trim()).filter(Boolean),
+        desc: String(form.get('description')).trim() || 'No description provided.',
+        addedDate: Date.now()
+      };
+      jobs.unshift(newJob);
+      persistJobs();
+      event.currentTarget.reset();
+      hideModal('addModal');
+      renderJobs();
+      showNotice('Job added to your cart.');
+    });
+
+    document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => hideModal(button.dataset.close)));
+    document.querySelectorAll('.cart-modal').forEach(modal => modal.addEventListener('click', event => {
+      if (event.target === modal) hideModal(modal.id);
+    }));
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') document.querySelectorAll('.cart-modal:not([hidden])').forEach(modal => hideModal(modal.id));
+    });
+
+    renderJobs();
+  })();
+</script>
+{% endblock content %}
