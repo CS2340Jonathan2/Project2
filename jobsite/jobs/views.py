@@ -1,3 +1,4 @@
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
 
@@ -56,6 +57,30 @@ def job_list(request):
         'count': len(results),
         'jobs': results,
     })
+
+@login_required
+def job_recommendations(request):
+    try:
+        profile = request.user.profile
+    except Exception:
+        return render(request, 'jobs/recommendations.html', {'jobs': [], 'no_profile': True})
+
+    user_skills = profile.skill_list()
+    if not user_skills:
+        return render(request, 'jobs/recommendations.html', {'jobs': [], 'no_skills': True})
+
+    scored = []
+    for job in Job.objects.all():
+        job_skills = [s.strip().lower() for s in job.skills.split(',') if s.strip()]
+        matches = sum(1 for s in user_skills if s in job_skills)
+        if matches > 0:
+            scored.append((matches, job))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    jobs = [{'job': job, 'matches': matches} for matches, job in scored]
+
+    return render(request, 'jobs/recommendations.html', {'jobs': jobs, 'user_skills': user_skills})
+
 
 def job_map(request):
     """#7 page with the interactive Leaflet map. Jobs are loaded from map_data via JS."""

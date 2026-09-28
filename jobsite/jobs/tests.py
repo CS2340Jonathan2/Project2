@@ -121,3 +121,49 @@ class JobFilterTests(TestCase):
             {'visa_sponsorship': 'true'}
         )
         self.assertEqual(self.titles(response), ['Software Engineer'])
+
+class RecommendationsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('alice', 'alice@example.com', 'pw-12345!')
+        self.client.login(username='alice', password='pw-12345!')
+        self.url = reverse('jobs:recommendations')
+        self.job_defaults = dict(description='desc', location='Atlanta', latitude=33.749, longitude=-84.388)
+
+    def test_requires_login(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+
+    def test_no_profile_shows_prompt(self):
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Create one')
+
+    def test_no_skills_shows_prompt(self):
+        Profile.objects.create(user=self.user, headline='Dev', skills='')
+        resp = self.client.get(self.url)
+        self.assertContains(resp, 'Add skills')
+
+    def test_matching_jobs_returned(self):
+        Profile.objects.create(user=self.user, headline='Dev', skills='Python, SQL')
+        Job.objects.create(title='Backend Dev', skills='Python, Django', **self.job_defaults)
+        Job.objects.create(title='DB Admin', skills='SQL, Postgres', **self.job_defaults)
+        Job.objects.create(title='Designer', skills='Figma, CSS', **self.job_defaults)
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Backend Dev')
+        self.assertContains(resp, 'DB Admin')
+        self.assertNotContains(resp, 'Designer')
+
+    def test_ranked_by_match_count(self):
+        Profile.objects.create(user=self.user, headline='Dev', skills='Python, SQL, Django')
+        Job.objects.create(title='One Match', skills='Python', **self.job_defaults)
+        Job.objects.create(title='Two Matches', skills='Python, SQL', **self.job_defaults)
+        resp = self.client.get(self.url)
+        content = resp.content.decode()
+        self.assertLess(content.index('Two Matches'), content.index('One Match'))
+
+    def test_no_matching_jobs_shows_message(self):
+        Profile.objects.create(user=self.user, headline='Dev', skills='COBOL')
+        Job.objects.create(title='Python Dev', skills='Python', **self.job_defaults)
+        resp = self.client.get(self.url)
+        self.assertContains(resp, 'No jobs matched')
