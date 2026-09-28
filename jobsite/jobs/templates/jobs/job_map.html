@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Job map{% endblock %}
+
+{% block content %}
+<section class="page-heading jobs-heading">
+  <p class="eyebrow">Location search</p>
+  <h1>Jobs near you</h1>
+  <p>Choose a location and commute radius to find opportunities nearby.</p>
+</section>
+
+<section class="map-layout">
+  <aside class="map-panel" aria-label="Map controls and job results">
+    <form id="map-filters" class="map-filters">
+      <div class="filter-field">
+        <label for="map-location">Starting location</label>
+        <input id="map-location" value="Georgia Tech, Atlanta" placeholder="City or address">
+      </div>
+      <div class="filter-field">
+        <label for="radius">Commute radius</label>
+        <select id="radius">
+          <option value="5">5 miles</option>
+          <option value="10" selected>10 miles</option>
+          <option value="25">25 miles</option>
+          <option value="50">50 miles</option>
+        </select>
+      </div>
+      <button class="button button-primary map-update" type="submit">Update map</button>
+      <button class="button button-secondary" id="use-location" type="button">Use my location</button>
+    </form>
+
+    <div class="map-results-heading">
+      <h2 id="map-result-count">Loading jobs…</h2>
+      <p id="map-status" class="empty-copy" aria-live="polite"></p>
+    </div>
+    <div id="map-job-list" class="map-job-list"></div>
+  </aside>
+
+  <div id="job-map" class="job-map" role="region" aria-label="Interactive job map"></div>
+</section>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(() => {
+  const defaultCenter = [33.7756, -84.3963];
+  const map = L.map('job-map').setView(defaultCenter, 11);
+  const markers = L.layerGroup().addTo(map);
+
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri'
+  }).addTo(map);
+
+  const form = document.querySelector('#map-filters');
+  const locationInput = document.querySelector('#map-location');
+  const radiusInput = document.querySelector('#radius');
+  const resultCount = document.querySelector('#map-result-count');
+  const status = document.querySelector('#map-status');
+  const list = document.querySelector('#map-job-list');
+  let center = defaultCenter;
+
+  const money = value => value == null ? '' : `$${Number(value).toLocaleString()}`;
+
+  function renderJobs(data) {
+    markers.clearLayers();
+    list.replaceChildren();
+    resultCount.textContent = `${data.count} job${data.count === 1 ? '' : 's'} in this area`;
+
+    data.jobs.forEach(job => {
+      const marker = L.marker([job.latitude, job.longitude]).addTo(markers);
+      marker.bindPopup(`<strong>${job.title}</strong><br>${job.location}`);
+
+      const card = document.createElement('article');
+      card.className = 'map-job-card';
+      const salary = job.salary_min || job.salary_max
+        ? `${money(job.salary_min)}${job.salary_min && job.salary_max ? '–' : ''}${money(job.salary_max)}`
+        : 'Salary not listed';
+      card.innerHTML = `
+        <h3>${job.title}</h3>
+        <p>${job.location}${job.distance_miles == null ? '' : ` · ${job.distance_miles} mi`}</p>
+        <span>${salary}</span>
+      `;
+      card.addEventListener('click', () => {
+        map.setView([job.latitude, job.longitude], 14);
+        marker.openPopup();
+      });
+      list.appendChild(card);
+    });
+
+    if (!data.count) {
+      list.innerHTML = '<p class="empty-copy">No jobs are available within this radius.</p>';
+    }
+  }
+
+  async function loadJobs() {
+    status.textContent = 'Updating results…';
+    const params = new URLSearchParams({lat: center[0], lng: center[1], radius: radiusInput.value});
+    try {
+      const response = await fetch(`{% url 'jobs:map_data' %}?${params}`);
+      if (!response.ok) throw new Error('Unable to load jobs');
+      const data = await response.json();
+      renderJobs(data);
+      map.setView(center, Number(radiusInput.value) <= 10 ? 11 : 9);
+      status.textContent = locationInput.value;
+    } catch (error) {
+      resultCount.textContent = 'Jobs could not be loaded';
+      status.textContent = 'Please try again.';
+    }
+  }
+
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    loadJobs();
+  });
+
+  document.querySelector('#use-location').addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      status.textContent = 'Location services are not available in this browser.';
+      return;
+    }
+    status.textContent = 'Finding your location…';
+    navigator.geolocation.getCurrentPosition(position => {
+      center = [position.coords.latitude, position.coords.longitude];
+      locationInput.value = 'Current location';
+      loadJobs();
+    }, () => {
+      status.textContent = 'We could not access your location.';
+    });
+  });
+
+  loadJobs();
+})();
+</script>
+{% endblock %}
+
