@@ -60,6 +60,7 @@
     }
 
     .navbar-links a:hover { color: #ffffff; }
+    .navbar-links a.active { color: #ffffff; }
 
     .navbar-avatar {
       width: 44px;
@@ -85,6 +86,148 @@
     .content {
       width: 100%;
       min-height: calc(100vh - 76px);
+    }
+
+    .page-content {
+      flex: 1;
+      width: min(100%, 1440px);
+      margin: 0 auto;
+      padding: 48px 84px;
+    }
+
+    .jobs-heading {
+      color: #102A43;
+    }
+
+    .page-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      font-weight: 400;
+    }
+
+    .page-subtitle {
+      margin: 0 0 28px;
+      color: #718096;
+      font-size: 12px;
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .search-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .search-field.keyword { flex: 1; }
+    .search-field.location { width: 300px; }
+
+    .search-label {
+      color: #486581;
+      font-size: 12px;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 55px;
+      padding: 0 16px;
+      border: 1px solid #CBD5E1;
+      border-radius: 10px;
+      outline: none;
+      background-color: #ffffff;
+      color: #102A43;
+      font: 400 12px 'Inter', sans-serif;
+      transition: border-color 0.15s;
+    }
+
+    .search-input::placeholder { color: #718096; }
+    .search-input:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+    .btn-search {
+      width: 148px;
+      height: 55px;
+      flex-shrink: 0;
+      border: 1px solid #2563EB;
+      border-radius: 10px;
+      background-color: #2563EB;
+      color: #ffffff;
+      font: 400 16px 'Inter', sans-serif;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+
+    .btn-search:hover { background-color: #1D4ED8; }
+
+    .results-count {
+      margin: 0 0 16px;
+      color: #102A43;
+      font-size: 12px;
+    }
+
+    .job-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .job-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border: 1px solid #D9E2EC;
+      border-radius: 8px;
+      background-color: #ffffff;
+      color: inherit;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+
+    .job-card:hover {
+      border-color: #B0C4D8;
+      box-shadow: 0 2px 8px rgba(16, 42, 67, 0.06);
+    }
+
+    .job-card-body { flex: 1; min-width: 0; }
+
+    .job-title {
+      margin: 0 0 4px;
+      color: #102A43;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .job-meta {
+      margin: 0 0 10px;
+      color: #718096;
+      font-size: 12px;
+    }
+
+    .job-tag {
+      display: inline-block;
+      padding: 4px 16px;
+      border-radius: 999px;
+      background-color: #EFF6FF;
+      color: #245084;
+      font-size: 12px;
+    }
+
+    .job-description {
+      margin: 10px 0 0;
+      color: #486581;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .empty-state {
+      padding: 64px 0;
+      color: #718096;
+      font-size: 14px;
+      text-align: center;
     }
 
     .home-layout {
@@ -338,6 +481,17 @@
       .home-left { gap: 32px; padding: 48px 28px; }
       .home-right { min-height: 52vh; padding: 48px 28px; }
       .home-right h1 { font-size: 36px; }
+      .page-content { padding: 32px 24px; }
+    }
+
+    @media (max-width: 900px) {
+      .search-bar { flex-wrap: wrap; }
+      .search-field.location { width: 100%; }
+      .btn-search { width: 100%; }
+    }
+
+    @media (max-width: 768px) {
+      .search-field.keyword { flex: none; width: 100%; }
     }
   </style>
 </head>
@@ -346,7 +500,7 @@
   <nav class="navbar">
     <a href="/" class="navbar-brand">JOB BOARD</a>
     <ul class="navbar-links">
-      <li><a href="/#opportunities">Find Jobs</a></li>
+      <li><a href="/jobs/" class="{% if request.resolver_match.url_name == 'jobs.index' %}active{% endif %}" {% if request.resolver_match.url_name == 'jobs.index' %}aria-current="page"{% endif %}>Find Jobs</a></li>
       <li><a href="/#how-it-works">How It Works</a></li>
     </ul>
     <div class="navbar-avatar" aria-label="Job Board">JB</div>

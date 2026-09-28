@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}{{ template_data.title }} | Job Board{% endblock title %}
+{% block content %}
+<section class="page-content">
+  <header class="jobs-heading">
+    <h1 class="page-title">Find your next opportunity</h1>
+    <p class="page-subtitle">Browse roles matched to your interests.</p>
+  </header>
+
+  <form method="get" action="{% url 'jobs.index' %}" class="search-bar">
+    <div class="search-field keyword">
+      <label for="id_q" class="search-label">Search</label>
+      <input
+        type="search"
+        id="id_q"
+        name="q"
+        class="search-input"
+        placeholder="Software engineering, data, marketing..."
+        value="{{ template_data.query }}"
+        autocomplete="off"
+      />
+    </div>
+    <div class="search-field location">
+      <label for="id_location" class="search-label">Location</label>
+      <input
+        type="search"
+        id="id_location"
+        name="location"
+        class="search-input"
+        placeholder="City, state, or remote"
+        value="{{ template_data.location }}"
+        autocomplete="off"
+      />
+    </div>
+    <button type="submit" class="btn-search">Search</button>
+  </form>
+
+  <p class="results-count">
+    {{ template_data.jobs|length }} opportunit{{ template_data.jobs|length|pluralize:"y,ies" }}
+  </p>
+
+  {% if template_data.jobs %}
+    <div class="job-list">
+      {% for job in template_data.jobs %}
+        <article class="job-card">
+          <div class="job-card-body">
+            <h2 class="job-title">{{ job.title }}</h2>
+            <p class="job-meta">{{ job.company }} &middot; {{ job.location }} &middot; {{ job.salary }}</p>
+            <span class="job-tag">{{ job.type }}</span>
+            <p class="job-description">{{ job.description }}</p>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">No jobs found. Try adjusting your search.</div>
+  {% endif %}
+</section>
+{% endblock content %}
