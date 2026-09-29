@@ -596,11 +596,16 @@
       </summary>
       <nav class="profile-menu" aria-label="Profile options">
         {% if user.is_authenticated %}
-        <form method="post" action="{% url 'accounts:logout' %}">
-          {% csrf_token %}
-          <button class="profile-menu-btn" type="submit">Log out</button>
-        </form>
-        <a href="{% url 'profiles:edit' %}">Edit Profile</a>
+          <form method="post" action="{% url 'accounts:logout' %}">
+            {% csrf_token %}
+            <button class="profile-menu-btn" type="submit">Log out</button>
+          </form>
+          {% if user.profile %}
+            <a href="{% url 'profiles:edit' %}">Edit Profile</a>
+            <a href="{% url 'profiles:detail' user.username %}">View Profile</a>
+          {% else %}
+            <a href="{% url 'profiles:edit' %}">Create Profile</a>
+          {% endif %}
         {% else %}
           <a href="{% url 'accounts:login' %}">Log in</a>
           <a href="{% url 'accounts:signup' %}">Sign up</a>
