@@ -1,21 +1,153 @@
 {% extends "base.html" %}
-{% block title %}Find jobs{% endblock %}
+{% block title %}Find Jobs | Job Board{% endblock %}
 {% block content %}
-<section class="page-heading"><p class="eyebrow">Explore opportunities</p><h1>Find your next opportunity</h1><p>Search by role, skills, location, work arrangement, salary, and sponsorship.</p></section>
-<form class="job-filters" method="get" action="{% url 'jobs:job_list' %}">
-  <div class="filter-field filter-search"><label for="title">Job title</label><input id="title" name="title" value="{{ filters.title }}" placeholder="Software engineer, analyst…"></div>
-  <div class="filter-field"><label for="location">Location</label><input id="location" name="location" value="{{ filters.location }}" placeholder="Atlanta, GA"></div>
-  <div class="filter-field"><label for="skills">Skills</label><input id="skills" name="skills" value="{{ filters.skills }}" placeholder="Python, SQL…"></div>
-  <div class="filter-field"><label for="remote">Work arrangement</label><select id="remote" name="remote"><option value="">Remote or on-site</option><option value="true" {% if filters.remote == 'true' %}selected{% endif %}>Remote</option><option value="false" {% if filters.remote == 'false' %}selected{% endif %}>On-site</option></select></div>
-  <div class="filter-field"><label for="salary_min">Minimum salary</label><input id="salary_min" name="salary_min" type="number" min="0" value="{{ filters.salary_min }}" placeholder="60000"></div>
-  <div class="filter-field"><label for="visa_sponsorship">Visa sponsorship</label><select id="visa_sponsorship" name="visa_sponsorship"><option value="">Any</option><option value="true" {% if filters.visa_sponsorship == 'true' %}selected{% endif %}>Available</option><option value="false" {% if filters.visa_sponsorship == 'false' %}selected{% endif %}>Not available</option></select></div>
-  <div class="filter-actions"><button class="button button-primary" type="submit">Search jobs</button><a class="button button-secondary" href="{% url 'jobs:job_list' %}">Clear filters</a></div>
-</form>
-<section class="results-section" aria-labelledby="results-title">
-  <div class="results-header"><div><p class="eyebrow">Results</p><h2 id="results-title">{{ result_count }} job{{ result_count|pluralize }}</h2></div><a class="button button-secondary" href="{% url 'jobs:map' %}">View on map</a></div>
-  <div class="job-list">
-  {% for job in jobs %}<article class="job-card"><div><p class="job-company">{{ job.company_name|default:"Company" }}</p><h2>{{ job.title }}</h2><p class="job-location">{{ job.location }}{% if job.is_remote %} · Remote{% endif %}</p><p class="job-summary">{{ job.description|truncatewords:28 }}</p><div class="job-tags">{% if job.skills %}<span>{{ job.skills|truncatewords:5 }}</span>{% endif %}{% if job.visa_sponsorship %}<span>Visa sponsorship</span>{% endif %}</div></div><div class="job-card-side"><p class="job-salary">{% if job.salary_min %}${{ job.salary_min }}{% else %}Salary not listed{% endif %}</p><div class="job-card-actions"><a class="button button-primary" href="{% url 'jobs:apply' job.id %}">Apply now</a><form method="post" action="{% url 'cart:add_to_cart' job.id %}">{% csrf_token %}<button class="button button-secondary" type="submit">Add to job cart</button></form></div></div></article>
-  {% empty %}<div class="empty-state"><h2>No jobs matched those filters</h2><p class="empty-copy">Try broadening your search.</p></div>{% endfor %}
-  </div>
-</section>
+<style>
+  .find-jobs-page { max-width: 1440px; width: 100%; margin: 0 auto; padding: 48px 84px; }
+  .find-jobs-header { margin-bottom: 24px; }
+  .find-jobs-header h1 { margin: 0 0 4px; color: #102A43; font-size: 20px; font-weight: 400; }
+  .find-jobs-header p { margin: 0; color: #718096; font-size: 12px; }
+  .filter-panel { margin-bottom: 28px; padding: 24px; border: 1px solid #E2E8F0; border-radius: 10px; background: #FFFFFF; }
+  .filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 20px; margin-bottom: 18px; }
+  .filter-field { display: flex; min-width: 0; flex-direction: column; }
+  .filter-label { display: block; margin-bottom: 6px; color: #486581; font-size: 12px; }
+  .filter-control { width: 100%; height: 48px; padding: 0 14px; border: 1px solid #CBD5E1; border-radius: 7px; outline: none; background: #FFFFFF; color: #102A43; font: 400 12px 'Inter', sans-serif; transition: border-color .15s, box-shadow .15s; }
+  .filter-control::placeholder { color: #718096; }
+  .filter-control:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37, 99, 235, .1); }
+  .filter-actions { display: flex; align-items: center; gap: 10px; padding-top: 16px; border-top: 1px solid #EDF2F7; }
+  .find-jobs-button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 7px; padding: 0 20px; border: 1px solid #2563EB; border-radius: 7px; background: #2563EB; color: #FFFFFF; font: 500 13px 'Inter', sans-serif; text-decoration: none; cursor: pointer; transition: background-color .15s, border-color .15s; }
+  .find-jobs-button:hover { border-color: #1D4ED8; background: #1D4ED8; }
+  .find-jobs-button-secondary { border-color: #CBD5E1; background: #FFFFFF; color: #61758A; font-weight: 400; }
+  .find-jobs-button-secondary:hover { border-color: #94A3B8; background: #FFFFFF; color: #334E68; }
+  .results-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+  .results-count { margin: 0; color: #102A43; font-size: 12px; }
+  .map-link { display: inline-flex; min-height: 34px; align-items: center; gap: 7px; padding: 0 12px; border: 1px solid #BFDBFE; border-radius: 6px; background: #EFF6FF; color: #2563EB; font-size: 12px; text-decoration: none; transition: background-color .15s; }
+  .map-link:hover { background: #DBEAFE; }
+  .find-job-list { display: flex; flex-direction: column; gap: 10px; }
+  .find-job-card { display: flex; align-items: center; gap: 16px; padding: 19px 22px; border: 1px solid #D9E2EC; border-radius: 7px; background: #FFFFFF; transition: border-color .15s, box-shadow .15s; }
+  .find-job-card:hover { border-color: #B0C4D8; box-shadow: 0 2px 8px rgba(16, 42, 67, .06); }
+  .find-job-card-body { flex: 1; min-width: 0; }
+  .find-job-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+  .find-job-title { overflow: hidden; margin: 0; color: #102A43; font-size: 14px; font-weight: 500; text-overflow: ellipsis; }
+  .find-job-salary { flex-shrink: 0; color: #0C7B74; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .find-job-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0 0 10px; color: #718096; font-size: 12px; }
+  .find-job-meta-dot { color: #C7D5E8; }
+  .find-job-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .find-job-tag { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #EFF6FF; color: #245084; font-size: 11px; }
+  .find-job-tag-arrangement, .find-job-tag-sponsorship { background: #F0FDF4; color: #166534; }
+  .find-job-card-actions { display: flex; flex-shrink: 0; align-items: center; gap: 8px; }
+  .find-job-card-actions form { margin: 0; }
+  .find-job-card-actions .find-jobs-button { min-height: 36px; padding: 0 12px; font-size: 12px; }
+  .find-jobs-empty { padding: 58px 24px; border: 1px solid #D9E2EC; border-radius: 7px; background: #FFFFFF; color: #718096; text-align: center; }
+  .find-jobs-empty h2 { margin: 0 0 6px; color: #102A43; font-size: 15px; }
+  .find-jobs-empty p { margin: 0 0 17px; font-size: 12px; }
+  @media (max-width: 1000px) { .find-jobs-page { padding: 36px 32px; } .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 700px) { .find-jobs-page { padding: 28px 16px; } .filter-grid { grid-template-columns: 1fr; } .find-job-card { align-items: stretch; flex-direction: column; } .find-job-card-top { align-items: flex-start; flex-direction: column; gap: 5px; } .find-job-card-actions { flex-wrap: wrap; } }
+  @media (max-width: 480px) { .filter-panel { padding: 17px; } .filter-actions { align-items: stretch; flex-direction: column; } .filter-actions > * { width: 100%; } .results-bar { align-items: flex-start; flex-direction: column; } }
+</style>
+
+<main class="find-jobs-page">
+  <header class="find-jobs-header">
+    <h1>Find your next opportunity</h1>
+    <p>Browse roles matched to your interests.</p>
+  </header>
+
+  <form class="filter-panel" method="get" action="{% url 'jobs:job_list' %}">
+    <div class="filter-grid">
+      <div class="filter-field">
+        <label for="filter-title" class="filter-label">Job title</label>
+        <input class="filter-control" id="filter-title" name="title" value="{{ filters.title }}" placeholder="e.g. Software Engineer">
+      </div>
+      <div class="filter-field">
+        <label for="filter-location" class="filter-label">Location</label>
+        <input class="filter-control" id="filter-location" name="location" value="{{ filters.location }}" placeholder="e.g. Atlanta, GA">
+      </div>
+      <div class="filter-field">
+        <label for="filter-skills" class="filter-label">Skills</label>
+        <input class="filter-control" id="filter-skills" name="skills" value="{{ filters.skills }}" placeholder="e.g. Python, SQL">
+      </div>
+      <div class="filter-field">
+        <label for="filter-remote" class="filter-label">Work arrangement</label>
+        <select class="filter-control" id="filter-remote" name="remote">
+          <option value="">Remote or on-site</option>
+          <option value="true" {% if filters.remote == 'true' %}selected{% endif %}>Remote</option>
+          <option value="false" {% if filters.remote == 'false' %}selected{% endif %}>On-site</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="filter-salary-min" class="filter-label">Minimum salary</label>
+        <input class="filter-control" id="filter-salary-min" name="salary_min" type="number" min="0" value="{{ filters.salary_min }}" placeholder="e.g. 60000">
+      </div>
+      <!-- <div class="filter-field">
+        <label for="filter-salary-max" class="filter-label">Maximum salary</label>
+        <input class="filter-control" id="filter-salary-max" name="salary_max" type="number" min="0" value="{{ filters.salary_max }}" placeholder="e.g. 120000">
+      </div> -->
+      <div class="filter-field">
+        <label for="filter-sponsorship" class="filter-label">Visa sponsorship</label>
+        <select class="filter-control" id="filter-sponsorship" name="visa_sponsorship">
+          <option value="">Any</option>
+          <option value="true" {% if filters.visa_sponsorship == 'true' %}selected{% endif %}>Available</option>
+          <option value="false" {% if filters.visa_sponsorship == 'false' %}selected{% endif %}>Not available</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-actions">
+      <button class="find-jobs-button" type="submit">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.5"/><path d="m8.5 8.5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Search jobs
+      </button>
+      <a href="{% url 'jobs:job_list' %}" class="find-jobs-button find-jobs-button-secondary">Clear filters</a>
+    </div>
+  </form>
+
+  <section aria-labelledby="job-results-title">
+    <div class="results-bar">
+      <p class="results-count" id="job-results-title">{{ result_count }} job{{ result_count|pluralize }}</p>
+      <a href="{% url 'jobs:map' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="map-link">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M4.5 1 1 2.5v9L4.5 10l4 1.5 3.5-1.5v-9L8.5 2.5 4.5 1Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M4.5 1v9M8.5 2.5v9" stroke="currentColor" stroke-width="1.3"/></svg>
+        View on map
+      </a>
+    </div>
+
+    {% if jobs %}
+      <div class="find-job-list">
+        {% for job in jobs %}
+          <article class="find-job-card">
+            <div class="find-job-card-body">
+              <div class="find-job-card-top">
+                <h2 class="find-job-title">{{ job.title }}</h2>
+                <span class="find-job-salary">
+                  {% if job.salary_min or job.salary_max %}
+                    {% if job.salary_min %}${{ job.salary_min }}{% else %}Salary not listed{% endif %}{% if job.salary_max %} - ${{ job.salary_max }}{% endif %}
+                  {% else %}Salary not listed{% endif %}
+                </span>
+              </div>
+              <p class="find-job-meta">
+                <span>{{ job.company_name|default:"Company" }}</span><span class="find-job-meta-dot" aria-hidden="true">&middot;</span><span>{{ job.location }}</span>
+                {% if job.is_remote %}<span class="find-job-meta-dot" aria-hidden="true">&middot;</span><span>Remote</span>{% endif %}
+              </p>
+              <div class="find-job-tags">
+                {% if job.is_remote %}<span class="find-job-tag find-job-tag-arrangement">Remote</span>{% else %}<span class="find-job-tag find-job-tag-arrangement">On-site</span>{% endif %}
+                {% if job.visa_sponsorship %}<span class="find-job-tag find-job-tag-sponsorship">Visa sponsorship</span>{% endif %}
+                {% if job.skills %}<span class="find-job-tag">{{ job.skills|truncatewords:8 }}</span>{% endif %}
+              </div>
+            </div>
+            <div class="find-job-card-actions">
+              <a class="find-jobs-button" href="{% url 'jobs:apply' job.id %}">Apply now</a>
+              <form method="post" action="{% url 'cart:add_to_cart' job.id %}">
+                {% csrf_token %}
+                <button class="find-jobs-button find-jobs-button-secondary" type="submit">Add to job cart</button>
+              </form>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="find-jobs-empty">
+        <h2>No jobs found</h2>
+        <p>Try adjusting your filters or broadening your search.</p>
+        <a href="{% url 'jobs:job_list' %}" class="find-jobs-button find-jobs-button-secondary">Clear filters</a>
+      </div>
+    {% endif %}
+  </section>
+</main>
 {% endblock %}
