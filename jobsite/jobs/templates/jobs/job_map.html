@@ -3,6 +3,24 @@
 {% block title %}Job map{% endblock %}
 
 {% block content %}
+<style>
+  .map-layout {
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .job-map {
+    height: 70vh;
+    min-height: 480px;
+    border: 1px solid #E1E8F0;
+    border-radius: 8px;
+  }
+  @media (max-width: 800px) {
+    .map-layout { grid-template-columns: 1fr; }
+  }
+</style>
+
 <section class="page-heading jobs-heading">
   <p class="eyebrow">Location search</p>
   <h1>Jobs near you</h1>
@@ -61,6 +79,8 @@
   let center = defaultCenter;
 
   const money = value => value == null ? '' : `$${Number(value).toLocaleString()}`;
+  const applyUrlTemplate = "{% url 'jobs:apply' 0 %}";  // renders as /jobs/0/apply/
+  const applyUrl = id => applyUrlTemplate.replace('/0/', `/${id}/`);
 
   function renderJobs(data) {
     markers.clearLayers();
@@ -69,7 +89,22 @@
 
     data.jobs.forEach(job => {
       const marker = L.marker([job.latitude, job.longitude]).addTo(markers);
-      marker.bindPopup(`<strong>${job.title}</strong><br>${job.location}`);
+      const popup = document.createElement('div');
+
+      const popupTitle = document.createElement('strong');
+      popupTitle.textContent = job.title;
+
+      const popupLocation = document.createElement('div');
+      popupLocation.textContent = job.location;
+
+      const applyLink = document.createElement('a');
+      applyLink.href = applyUrl(job.id);
+      applyLink.textContent = 'Apply now →';
+      applyLink.style.display = 'inline-block';
+      applyLink.style.marginTop = '6px';
+
+      popup.append(popupTitle, popupLocation, applyLink);
+      marker.bindPopup(popup);
 
       const card = document.createElement('article');
       card.className = 'map-job-card';
