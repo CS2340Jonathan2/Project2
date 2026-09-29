@@ -105,16 +105,27 @@
       box-shadow: 0 8px 22px rgba(16, 42, 67, .16);
     }
 
-    .profile-menu a {
+    .profile-menu a,
+    .profile-menu-btn {
       display: block;
+      width: 100%;
       padding: 10px 11px;
+      border: none;
       border-radius: 4px;
+      background: none;
       color: #334E68;
       font-size: 13px;
+      font-family: inherit;
+      text-align: left;
       text-decoration: none;
+      cursor: pointer;
+      box-sizing: border-box;
     }
 
-    .profile-menu a:hover, .profile-menu a:focus-visible { background: #F1F5F9; color: #102A43; }
+    .profile-menu a:hover, .profile-menu a:focus-visible,
+    .profile-menu-btn:hover, .profile-menu-btn:focus-visible { background: #F1F5F9; color: #102A43; }
+
+    .profile-menu form { margin: 0; }
 
     .vr.d-none { display: none; }
 
@@ -584,8 +595,15 @@
         <span>Profile</span>
       </summary>
       <nav class="profile-menu" aria-label="Profile options">
-        <a href="{% url 'accounts.login' %}">Log in</a>
-        <a href="{% url 'accounts.signup' %}">Sign up</a>
+        {% if user.is_authenticated %}
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button class="profile-menu-btn" type="submit">Log out</button>
+          </form>
+        {% else %}
+          <a href="{% url 'accounts.login' %}">Log in</a>
+          <a href="{% url 'accounts.signup' %}">Sign up</a>
+        {% endif %}
       </nav>
     </details>
   </nav>
