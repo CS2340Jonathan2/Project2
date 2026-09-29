@@ -4,7 +4,8 @@ from django.shortcuts import redirect, render
 
 
 def index(request):
-    return render(request, 'home/index.html')
+    template_data = {'title': 'Job Board'}
+    return render(request, 'home/index.html', {'template_data': template_data})
 
 
 def signup(request):

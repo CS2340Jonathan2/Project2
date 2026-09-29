@@ -1,24 +1,42 @@
-{% extends "base.html" %}
-{% block title %}Home — JobSite{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Home | Find Your Next Opportunity{% endblock title %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 text-center py-5">
-        <h1 class="display-4 fw-bold mb-2">JobSite</h1>
-        <p class="text-muted mb-4">Find your next opportunity.</p>
-        <div class="d-grid gap-2 col-8 mx-auto">
-            <a href="/jobs/search/" class="btn btn-primary btn-lg">Browse Jobs</a>
-            <a href="/jobs/map/" class="btn btn-outline-secondary btn-lg">View Job Map</a>
-            <a href="/jobs/recommendations/" class="btn btn-outline-secondary btn-lg">Recommendations</a>
-            <a href="/cart/" class="btn btn-outline-secondary btn-lg">Saved Jobs</a>
-            <a href="/cart/applications/" class="btn btn-outline-secondary btn-lg">My Applications</a>
-            <a href="/profile/" class="btn btn-outline-secondary btn-lg">My Profile</a>
+<div class="content">
+  <div class="home-layout">
+    <aside class="home-left" aria-label="Job search benefits">
+      <section class="home-section" id="opportunities">
+        <h2>Make your next move</h2>
+        <p>Browse opportunities by role, location, or the kind of work you want to do. Your next chapter starts with a search.</p>
+      </section>
+
+      <section class="home-section" id="how-it-works">
+        <h2>A clearer job search</h2>
+        <p>Keep your search focused, compare opportunities, and stay organized as you work toward your next role.</p>
+      </section>
+    </aside>
+
+    <section class="home-right" aria-labelledby="home-title">
+      <div class="home-right-content">
+        <h1 id="home-title">Find work that moves you forward.</h1>
+        <p>Explore opportunities, discover roles that fit your goals, and take the next step in your career.</p>
+        
+        <!-- Functional Navigation Buttons -->
+        <div class="d-grid gap-2 col-10 mt-4">
+          <a href="{% url 'jobs:job_search' %}" class="btn btn-primary btn-lg">Browse Jobs</a>
+          <a href="{% url 'jobs:job_map' %}" class="btn btn-outline-secondary">View Job Map</a>
+          <a href="{% url 'jobs:job_recommendations' %}" class="btn btn-outline-secondary">Recommendations</a>
+          <a href="{% url 'cart:cart_list' %}" class="btn btn-outline-secondary">Saved Jobs</a>
+          <a href="{% url 'cart:application_list' %}" class="btn btn-outline-secondary">My Applications</a>
         </div>
+
         {% if not user.is_authenticated %}
         <p class="mt-4 text-muted">
-            <a href="/accounts/login/">Log in</a> or <a href="/signup/">Sign up</a> to get started.
+          <a href="{% url 'login' %}">Log in</a> or <a href="{% url 'home:signup' %}">Sign up</a> to get started.
         </p>
         {% endif %}
-    </div>
+      </div>
+    </section>
+  </div>
 </div>
-{% endblock %}
+{% endblock content %}
