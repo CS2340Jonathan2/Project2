@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Apply for {{ job.title }}{% endblock %}
+{% block content %}
+<section class="page-heading"><p class="eyebrow">Application</p><h1>Apply for {{ job.title }}</h1><p>Review the role and add a short note that makes your application personal.</p></section>
+<section class="application-card">
+  <div class="application-details"><p class="job-company">{{ job.company_name|default:"Company" }}</p><h2>{{ job.title }}</h2><p class="job-location">{{ job.location }}{% if job.is_remote %} · Remote{% endif %}</p><p>{{ job.description }}</p><div class="job-tags">{% if job.skills %}<span>{{ job.skills }}</span>{% endif %}{% if job.visa_sponsorship %}<span>Visa sponsorship</span>{% endif %}</div></div>
+  <form class="application-form" method="post" action="{% url 'cart:apply_to_job' job.id %}">
+    {% csrf_token %}<label for="tailored-note">Tailored note</label><textarea id="tailored-note" name="tailored_note" maxlength="1500" placeholder="Explain briefly why you are interested in this role…"></textarea><p class="empty-copy">Optional, up to 1,500 characters.</p><button class="button button-primary" type="submit">Submit application</button><a class="button button-secondary" href="{% url 'jobs:job_list' %}">Back to jobs</a>
+  </form>
+</section>
+{% endblock %}

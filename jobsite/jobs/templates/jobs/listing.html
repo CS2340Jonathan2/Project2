@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Find jobs{% endblock %}
+{% block content %}
+<section class="page-heading"><p class="eyebrow">Explore opportunities</p><h1>Find your next opportunity</h1><p>Search by role, skills, location, work arrangement, salary, and sponsorship.</p></section>
+<form class="job-filters" method="get" action="{% url 'jobs:job_list' %}">
+  <div class="filter-field filter-search"><label for="title">Job title</label><input id="title" name="title" value="{{ filters.title }}" placeholder="Software engineer, analyst…"></div>
+  <div class="filter-field"><label for="location">Location</label><input id="location" name="location" value="{{ filters.location }}" placeholder="Atlanta, GA"></div>
+  <div class="filter-field"><label for="skills">Skills</label><input id="skills" name="skills" value="{{ filters.skills }}" placeholder="Python, SQL…"></div>
+  <div class="filter-field"><label for="remote">Work arrangement</label><select id="remote" name="remote"><option value="">Remote or on-site</option><option value="true" {% if filters.remote == 'true' %}selected{% endif %}>Remote</option><option value="false" {% if filters.remote == 'false' %}selected{% endif %}>On-site</option></select></div>
+  <div class="filter-field"><label for="salary_min">Minimum salary</label><input id="salary_min" name="salary_min" type="number" min="0" value="{{ filters.salary_min }}" placeholder="60000"></div>
+  <div class="filter-field"><label for="visa_sponsorship">Visa sponsorship</label><select id="visa_sponsorship" name="visa_sponsorship"><option value="">Any</option><option value="true" {% if filters.visa_sponsorship == 'true' %}selected{% endif %}>Available</option><option value="false" {% if filters.visa_sponsorship == 'false' %}selected{% endif %}>Not available</option></select></div>
+  <div class="filter-actions"><button class="button button-primary" type="submit">Search jobs</button><a class="button button-secondary" href="{% url 'jobs:job_list' %}">Clear filters</a></div>
+</form>
+<section class="results-section" aria-labelledby="results-title">
+  <div class="results-header"><div><p class="eyebrow">Results</p><h2 id="results-title">{{ result_count }} job{{ result_count|pluralize }}</h2></div><a class="button button-secondary" href="{% url 'jobs:map' %}">View on map</a></div>
+  <div class="job-list">
+  {% for job in jobs %}<article class="job-card"><div><p class="job-company">{{ job.company_name|default:"Company" }}</p><h2>{{ job.title }}</h2><p class="job-location">{{ job.location }}{% if job.is_remote %} · Remote{% endif %}</p><p class="job-summary">{{ job.description|truncatewords:28 }}</p><div class="job-tags">{% if job.skills %}<span>{{ job.skills|truncatewords:5 }}</span>{% endif %}{% if job.visa_sponsorship %}<span>Visa sponsorship</span>{% endif %}</div></div><div class="job-card-side"><p class="job-salary">{% if job.salary_min %}${{ job.salary_min }}{% else %}Salary not listed{% endif %}</p><div class="job-card-actions"><a class="button button-primary" href="{% url 'jobs:apply' job.id %}">Apply now</a><form method="post" action="{% url 'cart:add_to_cart' job.id %}">{% csrf_token %}<button class="button button-secondary" type="submit">Add to job cart</button></form></div></div></article>
+  {% empty %}<div class="empty-state"><h2>No jobs matched those filters</h2><p class="empty-copy">Try broadening your search.</p></div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

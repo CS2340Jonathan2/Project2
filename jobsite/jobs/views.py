@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 
 from profiles.models import Profile
 
@@ -52,6 +52,18 @@ def job_list(request):
         }
         for job in jobs
     ]
+
+    if 'text/html' in request.headers.get('Accept', ''):
+        return render(request, 'jobs/listing.html', {
+            'jobs': jobs,
+            'result_count': jobs.count(),
+            'filters': {
+                'title': title or '', 'skills': skills or '',
+                'location': location or '', 'salary_min': salary_min or '',
+                'salary_max': salary_max or '', 'remote': remote or '',
+                'visa_sponsorship': visa or '',
+            },
+        })
 
     return JsonResponse({
         'count': len(results),
@@ -122,6 +134,13 @@ def job_recommendations(request):
 def job_map(request):
     """#7 page with the interactive Leaflet map. Jobs are loaded from map_data via JS."""
     return render(request, 'jobs/job_map.html')
+
+
+@login_required
+def apply(request, job_id):
+    return render(request, 'jobs/application.html', {
+        'job': get_object_or_404(Job, id=job_id),
+    })
 
 
 def _default_radius(user):
