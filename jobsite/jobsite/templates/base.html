@@ -578,7 +578,7 @@
   <nav class="navbar">
     <a href="/" class="navbar-brand">JOB BOARD</a>
     <ul class="navbar-links">
-      <li><a href="/jobs/" class="{% if request.resolver_match.url_name == 'jobs.index' %}active{% endif %}" {% if request.resolver_match.url_name == 'jobs.index' %}aria-current="page"{% endif %}>Find Jobs</a></li>
+      <li><a href="/jobs/search" class="{% if request.resolver_match.url_name == 'jobs.index' %}active{% endif %}" {% if request.resolver_match.url_name == 'jobs.index' %}aria-current="page"{% endif %}>Find Jobs</a></li>
       <li>
         <a href="{% url 'cart:cart_list' %}"
           class="{% if request.resolver_match.namespace == 'cart' and request.resolver_match.url_name == 'cart_list' %}active{% endif %}"

@@ -7,7 +7,7 @@ from profiles.models import Profile
 from .geo import haversine_miles
 from .models import Job
 
-def job_list(request):
+def search(request):
     jobs = Job.objects.all()
 
     title = request.GET.get('title')
@@ -69,42 +69,6 @@ def job_list(request):
         'count': len(results),
         'jobs': results,
     })
-
-def job_search(request):
-    jobs = Job.objects.all()
-
-    title    = request.GET.get('title', '')
-    skills   = request.GET.get('skills', '')
-    location = request.GET.get('location', '')
-    salary_min = request.GET.get('salary_min', '')
-    salary_max = request.GET.get('salary_max', '')
-    remote   = request.GET.get('remote', '')
-    visa     = request.GET.get('visa_sponsorship', '')
-
-    if title:
-        jobs = jobs.filter(title__icontains=title)
-    if skills:
-        jobs = jobs.filter(skills__icontains=skills)
-    if location:
-        jobs = jobs.filter(location__icontains=location)
-    if salary_min:
-        jobs = jobs.filter(salary_min__gte=salary_min)
-    if salary_max:
-        jobs = jobs.filter(salary_max__lte=salary_max)
-    if remote in ['true', 'false']:
-        jobs = jobs.filter(is_remote=(remote == 'true'))
-    if visa in ['true', 'false']:
-        jobs = jobs.filter(visa_sponsorship=(visa == 'true'))
-
-    context = {
-        'jobs': jobs,
-        'filters': {
-            'title': title, 'skills': skills, 'location': location,
-            'salary_min': salary_min, 'salary_max': salary_max,
-            'remote': remote, 'visa_sponsorship': visa,
-        },
-    }
-    return render(request, 'jobs/job_search.html', context)
 
 
 @login_required

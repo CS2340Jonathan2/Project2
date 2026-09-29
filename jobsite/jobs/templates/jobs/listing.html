@@ -51,7 +51,7 @@
     <p>Browse roles matched to your interests.</p>
   </header>
 
-  <form class="filter-panel" method="get" action="{% url 'jobs:job_list' %}">
+  <form class="filter-panel" method="get" action="{% url 'jobs:search' %}">
     <div class="filter-grid">
       <div class="filter-field">
         <label for="filter-title" class="filter-label">Job title</label>
@@ -95,7 +95,7 @@
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.5"/><path d="m8.5 8.5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         Search jobs
       </button>
-      <a href="{% url 'jobs:job_list' %}" class="find-jobs-button find-jobs-button-secondary">Clear filters</a>
+      <a href="{% url 'jobs:search' %}" class="find-jobs-button find-jobs-button-secondary">Clear filters</a>
     </div>
   </form>
 
@@ -145,7 +145,7 @@
       <div class="find-jobs-empty">
         <h2>No jobs found</h2>
         <p>Try adjusting your filters or broadening your search.</p>
-        <a href="{% url 'jobs:job_list' %}" class="find-jobs-button find-jobs-button-secondary">Clear filters</a>
+        <a href="{% url 'jobs:search' %}" class="find-jobs-button find-jobs-button-secondary">Clear filters</a>
       </div>
     {% endif %}
   </section>
