@@ -596,13 +596,13 @@
       </summary>
       <nav class="profile-menu" aria-label="Profile options">
         {% if user.is_authenticated %}
-          <form method="post" action="{% url 'logout' %}">
+          <form method="post" action="{% url 'accounts:logout' %}">
             {% csrf_token %}
             <button class="profile-menu-btn" type="submit">Log out</button>
           </form>
         {% else %}
-          <a href="{% url 'accounts.login' %}">Log in</a>
-          <a href="{% url 'accounts.signup' %}">Sign up</a>
+          <a href="{% url 'accounts:login' %}">Log in</a>
+          <a href="{% url 'accounts:signup' %}">Sign up</a>
         {% endif %}
       </nav>
     </details>

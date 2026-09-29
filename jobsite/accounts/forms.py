@@ -21,3 +21,4 @@ class SignUpForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
