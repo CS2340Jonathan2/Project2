@@ -1,6 +1,3 @@
-from django.test import TestCase
-
-# Create your tests here.
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -13,11 +10,7 @@ User = get_user_model()
 
 class CartTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username='lola',
-            password='testpass123'
-        )
-
+        self.user = User.objects.create_user(username='lola', password='testpass123')
         self.job = Job.objects.create(
             title='Product Intern',
             description='Internship role',
@@ -32,105 +25,44 @@ class CartTests(TestCase):
             latitude=33.7490,
             longitude=-84.3880,
         )
-
-        self.client.login(
-            username='lola',
-            password='testpass123'
-        )
+        self.client.login(username='lola', password='testpass123')
 
     def test_add_job_to_cart(self):
-        response = self.client.post(
-            reverse('cart:add_to_cart', args=[self.job.id])
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(
-            JobCartItem.objects.filter(
-                user=self.user,
-                job=self.job
-            ).exists()
-        )
+        response = self.client.post(reverse('cart:add_to_cart', args=[self.job.id]))
+        self.assertRedirects(response, reverse('cart:cart_list'))
+        self.assertTrue(JobCartItem.objects.filter(user=self.user, job=self.job).exists())
 
     def test_cart_list(self):
-        JobCartItem.objects.create(
-            user=self.user,
-            job=self.job
-        )
-
-        response = self.client.get(
-            reverse('cart:cart_list')
-        )
-
+        JobCartItem.objects.create(user=self.user, job=self.job)
+        response = self.client.get(reverse('cart:cart_list'))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['count'], 1)
-        self.assertEqual(
-            response.json()['jobs'][0]['title'],
-            'Product Intern'
-        )
+        self.assertContains(response, 'Product Intern')
 
     def test_remove_job_from_cart(self):
-        JobCartItem.objects.create(
-            user=self.user,
-            job=self.job
-        )
-
-        response = self.client.post(
-            reverse('cart:remove_from_cart', args=[self.job.id])
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(
-            JobCartItem.objects.filter(
-                user=self.user,
-                job=self.job
-            ).exists()
-        )
+        JobCartItem.objects.create(user=self.user, job=self.job)
+        response = self.client.post(reverse('cart:remove_from_cart', args=[self.job.id]))
+        self.assertRedirects(response, reverse('cart:cart_list'))
+        self.assertFalse(JobCartItem.objects.filter(user=self.user, job=self.job).exists())
 
     def test_apply_to_job(self):
         response = self.client.post(
             reverse('cart:apply_to_job', args=[self.job.id]),
             {'tailored_note': 'I am interested in this role.'}
         )
-
-        self.assertEqual(response.status_code, 201)
-
-        application = Application.objects.get(
-            user=self.user,
-            job=self.job
-        )
-
+        self.assertRedirects(response, reverse('cart:application_list'))
+        application = Application.objects.get(user=self.user, job=self.job)
         self.assertEqual(application.status, 'applied')
-        self.assertEqual(
-            application.tailored_note,
-            'I am interested in this role.'
-        )
+        self.assertEqual(application.tailored_note, 'I am interested in this role.')
 
     def test_duplicate_application_rejected(self):
-        Application.objects.create(
-            user=self.user,
-            job=self.job
-        )
-
-        response = self.client.post(
-            reverse('cart:apply_to_job', args=[self.job.id])
-        )
-
-        self.assertEqual(response.status_code, 400)
+        Application.objects.create(user=self.user, job=self.job)
+        response = self.client.post(reverse('cart:apply_to_job', args=[self.job.id]))
+        self.assertRedirects(response, reverse('cart:cart_list'))
+        self.assertEqual(Application.objects.filter(user=self.user, job=self.job).count(), 1)
 
     def test_application_list(self):
-        Application.objects.create(
-            user=self.user,
-            job=self.job,
-            status='interview'
-        )
-
-        response = self.client.get(
-            reverse('cart:application_list')
-        )
-
+        Application.objects.create(user=self.user, job=self.job, status='interview')
+        response = self.client.get(reverse('cart:application_list'))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['count'], 1)
-        self.assertEqual(
-            response.json()['applications'][0]['status'],
-            'interview'
-        )
+        self.assertContains(response, 'Product Intern')
+        self.assertContains(response, 'Interview')

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Recommended Jobs — JobSite{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Recommended Jobs</h2>
+
+{% if no_profile %}
+<div class="alert alert-info">You don't have a profile yet. <a href="/profile/">Create one</a> to get recommendations.</div>
+
+{% elif no_skills %}
+<div class="alert alert-info">Add skills to your <a href="/profile/">profile</a> to get recommendations.</div>
+
+{% elif not jobs %}
+<div class="alert alert-warning">No jobs matched your skills ({{ user_skills|join:", " }}). Check back later!</div>
+
+{% else %}
+<p class="text-muted">Based on your skills: <strong>{{ user_skills|join:", " }}</strong> &nbsp;·&nbsp; {{ jobs|length }} job{{ jobs|length|pluralize }} found</p>
+
+{% for entry in jobs %}
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <h5 class="card-title mb-1">{{ entry.job.title }}</h5>
+            <span class="badge bg-success">{{ entry.matches }} skill match{{ entry.matches|pluralize:"es" }}</span>
+        </div>
+        {% if entry.job.company_name %}<p class="text-muted mb-1">{{ entry.job.company_name }}</p>{% endif %}
+        <p class="mb-1">
+            <small>
+                {{ entry.job.location }}
+                {% if entry.job.is_remote %}<span class="badge bg-secondary ms-1">Remote</span>{% endif %}
+                {% if entry.job.salary_min or entry.job.salary_max %}
+                · ${{ entry.job.salary_min|default:"?" }}–${{ entry.job.salary_max|default:"?" }}
+                {% endif %}
+                {% if entry.job.visa_sponsorship %}<span class="badge bg-info text-dark ms-1">Visa sponsorship</span>{% endif %}
+            </small>
+        </p>
+        <p class="card-text text-muted mt-2">{{ entry.job.description }}</p>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

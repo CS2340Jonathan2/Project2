@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Browse Jobs — JobSite{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Browse Jobs</h2>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" action="/jobs/search/">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <input type="text" name="title" class="form-control" placeholder="Job title"
+                           value="{{ filters.title }}">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="skills" class="form-control" placeholder="Skills (e.g. Python)"
+                           value="{{ filters.skills }}">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="location" class="form-control" placeholder="Location"
+                           value="{{ filters.location }}">
+                </div>
+                <div class="col-md-3">
+                    <input type="number" name="salary_min" class="form-control" placeholder="Min salary ($)"
+                           value="{{ filters.salary_min }}">
+                </div>
+                <div class="col-md-3">
+                    <input type="number" name="salary_max" class="form-control" placeholder="Max salary ($)"
+                           value="{{ filters.salary_max }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="remote" class="form-select">
+                        <option value="" {% if not filters.remote %}selected{% endif %}>Onsite/Offsite</option>
+                        <option value="true" {% if filters.remote == 'true' %}selected{% endif %}>Offsite</option>
+                        <option value="false" {% if filters.remote == 'false' %}selected{% endif %}>Onsite</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="visa_sponsorship" class="form-select">
+                        <option value="" {% if not filters.visa_sponsorship %}selected{% endif %}>Visa — any</option>
+                        <option value="true" {% if filters.visa_sponsorship == 'true' %}selected{% endif %}>Visa sponsorship</option>
+                        <option value="false" {% if filters.visa_sponsorship == 'false' %}selected{% endif %}>No visa sponsorship</option>
+                    </select>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <a href="/jobs/search/" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<p class="text-muted">{{ jobs|length }} job{{ jobs|length|pluralize }} found</p>
+
+{% for job in jobs %}
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <h5 class="card-title mb-1">{{ job.title }}</h5>
+            <div>
+                {% if job.is_remote %}<span class="badge bg-secondary me-1">Remote</span>{% endif %}
+                {% if job.visa_sponsorship %}<span class="badge bg-info text-dark">Visa</span>{% endif %}
+            </div>
+        </div>
+        {% if job.company_name %}<p class="text-muted mb-1">{{ job.company_name }}</p>{% endif %}
+        <p class="mb-1">
+            <small>
+                📍 {{ job.location }}
+                {% if job.salary_min or job.salary_max %}
+                &nbsp;·&nbsp; 💰 ${{ job.salary_min|default:"?" }}–${{ job.salary_max|default:"?" }}
+                {% endif %}
+                {% if job.skills %}
+                &nbsp;·&nbsp; 🛠 {{ job.skills }}
+                {% endif %}
+            </small>
+        </p>
+        <p class="card-text text-muted mt-2 mb-3">{{ job.description }}</p>
+        {% if user.is_authenticated %}
+        <form method="post" action="/cart/add/{{ job.id }}/" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-primary btn-sm">Save to cart</button>
+        </form>
+        {% else %}
+        <a href="/accounts/login/" class="btn btn-outline-primary btn-sm">Log in to save</a>
+        {% endif %}
+    </div>
+</div>
+{% empty %}
+<div class="alert alert-info">No jobs match your search. Try adjusting the filters.</div>
+{% endfor %}
+{% endblock %}

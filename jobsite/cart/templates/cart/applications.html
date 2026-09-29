@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}My Applications — JobSite{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">My Applications</h2>
+
+{% if not applications %}
+<div class="alert alert-info">No applications yet. <a href="/cart/">Save some jobs</a> and apply from there.</div>
+{% else %}
+<p class="text-muted">{{ applications|length }} application{{ applications|length|pluralize }}</p>
+
+{% for app in applications %}
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h5 class="card-title mb-1">{{ app.job.title }}</h5>
+                {% if app.job.company_name %}<p class="text-muted mb-1">{{ app.job.company_name }}</p>{% endif %}
+                <p class="mb-1">
+                    <small>{{ app.job.location }}{% if app.job.is_remote %} · Remote{% endif %}</small>
+                </p>
+            </div>
+            <span class="badge rounded-pill fs-6
+                {% if app.status == 'applied' %}bg-primary
+                {% elif app.status == 'review' %}bg-warning text-dark
+                {% elif app.status == 'interview' %}bg-purple
+                {% elif app.status == 'offer' %}bg-success
+                {% else %}bg-secondary{% endif %}">
+                {{ app.get_status_display }}
+            </span>
+        </div>
+        <p class="text-muted mb-1"><small>Applied {{ app.applied_at|date:"N j, Y" }}</small></p>
+        {% if app.tailored_note %}
+        <p class="mb-0"><em>Your note:</em> {{ app.tailored_note }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

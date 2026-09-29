@@ -4,24 +4,8 @@
 <section class="page-heading"><p class="eyebrow">Application</p><h1>Apply for {{ job.title }}</h1><p>Review the role and add a short note that makes your application personal.</p></section>
 <section class="application-card">
   <div class="application-details"><p class="job-company">{{ job.company_name|default:"Company" }}</p><h2>{{ job.title }}</h2><p class="job-location">{{ job.location }}{% if job.is_remote %} · Remote{% endif %}</p><p>{{ job.description }}</p><div class="job-tags">{% if job.skills %}<span>{{ job.skills }}</span>{% endif %}{% if job.visa_sponsorship %}<span>Visa sponsorship</span>{% endif %}</div></div>
-  <form id="application-form" class="application-form" method="post" action="{% url 'cart:apply_to_job' job.id %}">
-    {% csrf_token %}<label for="tailored-note">Tailored note</label><textarea id="tailored-note" name="tailored_note" maxlength="1500" placeholder="Explain briefly why you are interested in this role…"></textarea><p class="empty-copy">Optional, up to 1,500 characters.</p><button class="button button-primary" type="submit">Submit application</button><a class="button button-secondary" href="{% url 'jobs:job_list' %}">Back to jobs</a><p id="application-status" class="application-status" aria-live="polite"></p>
+  <form class="application-form" method="post" action="{% url 'cart:apply_to_job' job.id %}">
+    {% csrf_token %}<label for="tailored-note">Tailored note</label><textarea id="tailored-note" name="tailored_note" maxlength="1500" placeholder="Explain briefly why you are interested in this role…"></textarea><p class="empty-copy">Optional, up to 1,500 characters.</p><button class="button button-primary" type="submit">Submit application</button><a class="button button-secondary" href="{% url 'jobs:job_list' %}">Back to jobs</a>
   </form>
 </section>
-<script>
-document.querySelector('#application-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const status = document.querySelector('#application-status');
-  const button = form.querySelector('button[type="submit"]');
-  status.className = 'application-status'; status.textContent = 'Submitting…'; button.disabled = true;
-  try {
-    const response = await fetch(form.action, {method:'POST', body:new FormData(form), headers:{'X-Requested-With':'XMLHttpRequest'}});
-    if (response.redirected) { window.location.href = response.url; return; }
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Application could not be submitted.');
-    status.classList.add('success'); status.textContent = 'Application submitted successfully.'; form.querySelector('textarea').disabled = true;
-  } catch (error) { status.classList.add('error'); status.textContent = error.message; button.disabled = false; }
-});
-</script>
 {% endblock %}

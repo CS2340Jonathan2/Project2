@@ -4,9 +4,11 @@ body { margin:0; color:var(--ink); background:var(--canvas); font-family:"DM San
 a { color:var(--primary); }
 .site-header { min-height:72px; padding:14px clamp(20px,5vw,72px); display:flex; align-items:center; justify-content:space-between; gap:24px; background:var(--surface); border-bottom:1px solid var(--line); }
 .brand { color:var(--ink); font-size:1.1rem; font-weight:700; text-decoration:none; }
-nav { display:flex; flex-wrap:wrap; gap:8px 22px; }
-nav a { color:var(--muted); font-weight:600; text-decoration:none; }
-nav a:hover,nav a:focus-visible { color:var(--primary); }
+.site-nav { display:flex; flex-wrap:wrap; align-items:center; gap:8px 22px; }
+.site-nav a,.nav-button { color:var(--muted); font-weight:600; text-decoration:none; }
+.site-nav a:hover,.site-nav a:focus-visible,.nav-button:hover,.nav-button:focus-visible { color:var(--primary); }
+.site-nav form { margin:0; }
+.nav-button { padding:0; border:0; background:transparent; cursor:pointer; font:inherit; }
 .page-shell { width:min(1040px,calc(100% - 40px)); margin:48px auto 72px; }
 .page-heading { max-width:760px; margin-bottom:24px; }
 .eyebrow { margin:0 0 6px; color:var(--primary); font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
