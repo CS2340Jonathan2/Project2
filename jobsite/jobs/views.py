@@ -1,88 +1,209 @@
-from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
 
-jobs = [
-	{
-		'id': 1,
-		'title': 'Frontend Developer',
-		'company': 'Northstar Digital',
-		'location': 'Remote',
-		'type': 'Full-time',
-		'salary': '$85,000-$105,000',
-		'description': 'Build accessible, responsive interfaces for products used by thousands of customers.',
-	},
-	{
-		'id': 2,
-		'title': 'Data Analyst',
-		'company': 'Brightline Health',
-		'location': 'Boston, MA',
-		'type': 'Full-time',
-		'salary': '$72,000-$90,000',
-		'description': 'Turn healthcare data into clear insights that help teams make better decisions.',
-	},
-	{
-		'id': 3,
-		'title': 'Marketing Coordinator',
-		'company': 'Fieldwork Studio',
-		'location': 'New York, NY',
-		'type': 'Hybrid',
-		'salary': '$55,000-$68,000',
-		'description': 'Coordinate campaigns, content, and events for a growing creative team.',
-	},
-	{
-		'id': 4,
-		'title': 'Customer Support Specialist',
-		'company': 'Cloudwell',
-		'location': 'Remote',
-		'type': 'Full-time',
-		'salary': '$48,000-$60,000',
-		'description': 'Help customers get the most from a friendly, fast-growing software platform.',
-	},
-	{
-		'id': 5,
-		'title': 'Project Manager',
-		'company': 'Civic Works Group',
-		'location': 'Chicago, IL',
-		'type': 'Full-time',
-		'salary': '$78,000-$98,000',
-		'description': 'Keep cross-functional projects on track from planning through delivery.',
-	},
-	{
-		'id': 6,
-		'title': 'Junior UX Designer',
-		'company': 'Pine & Pixel',
-		'location': 'Austin, TX',
-		'type': 'Hybrid',
-		'salary': '$62,000-$76,000',
-		'description': 'Create thoughtful user flows and visual designs alongside an experienced product team.',
-	},
-]
+from profiles.models import Profile
+
+from .geo import haversine_miles
+from .models import Job
+
+def job_list(request):
+    jobs = Job.objects.all()
+
+    title = request.GET.get('title')
+    skills = request.GET.get('skills')
+    location = request.GET.get('location')
+    salary_min = request.GET.get('salary_min')
+    salary_max = request.GET.get('salary_max')
+    remote = request.GET.get('remote')
+    visa = request.GET.get('visa_sponsorship')
+
+    if title:
+        jobs = jobs.filter(title__icontains=title)
+
+    if skills:
+        jobs = jobs.filter(skills__icontains=skills)
+
+    if location:
+        jobs = jobs.filter(location__icontains=location)
+
+    if salary_min:
+        jobs = jobs.filter(salary_min__gte=salary_min)
+
+    if salary_max:
+        jobs = jobs.filter(salary_max__lte=salary_max)
+
+    if remote in ['true', 'false']:
+        jobs = jobs.filter(is_remote=(remote == 'true'))
+
+    if visa in ['true', 'false']:
+        jobs = jobs.filter(visa_sponsorship=(visa == 'true'))
+
+    results = [
+        {
+            'id': job.id,
+            'title': job.title,
+            'skills': job.skills,
+            'location': job.location,
+            'salary_min': job.salary_min,
+            'salary_max': job.salary_max,
+            'is_remote': job.is_remote,
+            'visa_sponsorship': job.visa_sponsorship,
+        }
+        for job in jobs
+    ]
+
+    if 'text/html' in request.headers.get('Accept', ''):
+        return render(request, 'jobs/listing.html', {
+            'jobs': jobs,
+            'result_count': jobs.count(),
+            'filters': {
+                'title': title or '', 'skills': skills or '',
+                'location': location or '', 'salary_min': salary_min or '',
+                'salary_max': salary_max or '', 'remote': remote or '',
+                'visa_sponsorship': visa or '',
+            },
+        })
+
+    return JsonResponse({
+        'count': len(results),
+        'jobs': results,
+    })
+
+def job_search(request):
+    jobs = Job.objects.all()
+
+    title    = request.GET.get('title', '')
+    skills   = request.GET.get('skills', '')
+    location = request.GET.get('location', '')
+    salary_min = request.GET.get('salary_min', '')
+    salary_max = request.GET.get('salary_max', '')
+    remote   = request.GET.get('remote', '')
+    visa     = request.GET.get('visa_sponsorship', '')
+
+    if title:
+        jobs = jobs.filter(title__icontains=title)
+    if skills:
+        jobs = jobs.filter(skills__icontains=skills)
+    if location:
+        jobs = jobs.filter(location__icontains=location)
+    if salary_min:
+        jobs = jobs.filter(salary_min__gte=salary_min)
+    if salary_max:
+        jobs = jobs.filter(salary_max__lte=salary_max)
+    if remote in ['true', 'false']:
+        jobs = jobs.filter(is_remote=(remote == 'true'))
+    if visa in ['true', 'false']:
+        jobs = jobs.filter(visa_sponsorship=(visa == 'true'))
+
+    context = {
+        'jobs': jobs,
+        'filters': {
+            'title': title, 'skills': skills, 'location': location,
+            'salary_min': salary_min, 'salary_max': salary_max,
+            'remote': remote, 'visa_sponsorship': visa,
+        },
+    }
+    return render(request, 'jobs/job_search.html', context)
 
 
-def index(request):
-	query = request.GET.get('q', '').strip()
-	location = request.GET.get('location', '').strip()
-	filtered_jobs = jobs
+@login_required
+def job_recommendations(request):
+    try:
+        profile = request.user.profile
+    except Exception:
+        return render(request, 'jobs/recommendations.html', {'jobs': [], 'no_profile': True})
 
-	if query:
-		query_match = query.casefold()
-		filtered_jobs = [
-			job for job in filtered_jobs
-			if query_match in ' '.join(map(str, job.values())).casefold()
-		]
+    user_skills = profile.skill_list()
+    if not user_skills:
+        return render(request, 'jobs/recommendations.html', {'jobs': [], 'no_skills': True})
 
-	if location:
-		location_match = location.casefold()
-		filtered_jobs = [
-			job for job in filtered_jobs
-			if location_match in job['location'].casefold()
-		]
+    scored = []
+    for job in Job.objects.all():
+        job_skills = [s.strip().lower() for s in job.skills.split(',') if s.strip()]
+        matches = sum(1 for s in user_skills if s in job_skills)
+        if matches > 0:
+            scored.append((matches, job))
 
-	template_data = {
-		'title': 'Jobs',
-		'jobs': filtered_jobs,
-		'query': query,
-		'location': location,
-	}
-	return render(request, 'jobs/index.html', {
-		'template_data': template_data,
-	})
+    scored.sort(key=lambda x: x[0], reverse=True)
+    jobs = [{'job': job, 'matches': matches} for matches, job in scored]
+
+    return render(request, 'jobs/recommendations.html', {'jobs': jobs, 'user_skills': user_skills})
+
+
+def job_map(request):
+    """#7 page with the interactive Leaflet map. Jobs are loaded from map_data via JS."""
+    return render(request, 'jobs/job_map.html')
+
+
+@login_required
+def apply(request, job_id):
+    return render(request, 'jobs/application.html', {
+        'job': get_object_or_404(Job, id=job_id),
+    })
+
+
+def _default_radius(user):
+    """#9 a logged-in user's saved commute radius, or None."""
+    if user.is_authenticated:
+        profile = Profile.objects.filter(user=user).first()
+        if profile:
+            return profile.commute_radius
+    return None
+
+
+def map_data(request):
+    """
+    GET /jobs/map-data/?lat=&lng=&radius=
+
+    - No lat/lng: every job (#7).
+    - lat/lng given: only jobs within `radius` miles, closest first (#8).
+      If radius is left out, the user's saved commute radius is used (#9).
+    """
+    lat = request.GET.get('lat')
+    lng = request.GET.get('lng')
+    radius = request.GET.get('radius')
+
+    try:
+        lat = float(lat) if lat else None
+        lng = float(lng) if lng else None
+        radius = float(radius) if radius else _default_radius(request.user)
+    except ValueError:
+        return JsonResponse({'error': 'lat, lng and radius must be numbers'}, status=400)
+
+    if (lat is None) != (lng is None):
+        return JsonResponse({'error': 'lat and lng must be given together'}, status=400)
+    if lat is not None and not (-90 <= lat <= 90 and -180 <= lng <= 180):
+        return JsonResponse({'error': 'lat/lng out of range'}, status=400)
+    if radius is not None and radius <= 0:
+        return JsonResponse({'error': 'radius must be positive'}, status=400)
+
+    results = []
+    for job in Job.objects.all():
+        distance = None
+        if lat is not None:
+            distance = haversine_miles(lat, lng, job.latitude, job.longitude)
+            if radius is not None and distance > radius:
+                continue
+        results.append({
+            'id': job.id,
+            'title': job.title,
+            'location': job.location,
+            'latitude': job.latitude,
+            'longitude': job.longitude,
+            'salary_min': job.salary_min,
+            'salary_max': job.salary_max,
+            'is_remote': job.is_remote,
+            'visa_sponsorship': job.visa_sponsorship,
+            'distance_miles': round(distance, 1) if distance is not None else None,
+        })
+
+    if lat is not None:
+        results.sort(key=lambda j: j['distance_miles'])
+
+    return JsonResponse({
+        'center': {'lat': lat, 'lng': lng} if lat is not None else None,
+        'radius_miles': radius,
+        'count': len(results),
+        'jobs': results,
+    })

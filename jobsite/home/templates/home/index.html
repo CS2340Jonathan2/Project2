@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}{{ template_data.title }} | Find Your Next Opportunity{% endblock title %}
+{% block title %}Home | Find Your Next Opportunity{% endblock title %}
+
 {% block content %}
 <div class="content">
   <div class="home-layout">
@@ -19,6 +20,21 @@
       <div class="home-right-content">
         <h1 id="home-title">Find work that moves you forward.</h1>
         <p>Explore opportunities, discover roles that fit your goals, and take the next step in your career.</p>
+        
+        <!-- Functional Navigation Buttons -->
+        <div class="d-grid gap-2 col-10 mt-4">
+          <a href="{% url 'jobs:job_search' %}" class="btn btn-primary btn-lg">Browse Jobs</a>
+          <a href="{% url 'jobs:job_map' %}" class="btn btn-outline-secondary">View Job Map</a>
+          <a href="{% url 'jobs:job_recommendations' %}" class="btn btn-outline-secondary">Recommendations</a>
+          <a href="{% url 'cart:cart_list' %}" class="btn btn-outline-secondary">Saved Jobs</a>
+          <a href="{% url 'cart:application_list' %}" class="btn btn-outline-secondary">My Applications</a>
+        </div>
+
+        {% if not user.is_authenticated %}
+        <p class="mt-4 text-muted">
+          <a href="{% url 'login' %}">Log in</a> or <a href="{% url 'home:signup' %}">Sign up</a> to get started.
+        </p>
+        {% endif %}
       </div>
     </section>
   </div>

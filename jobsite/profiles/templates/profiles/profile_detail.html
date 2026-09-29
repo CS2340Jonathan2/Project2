@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.user.username }} — JobSite{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h2 class="mb-1">{{ profile.user.username }}</h2>
+                        <p class="text-muted fs-5">{{ profile.headline }}</p>
+                    </div>
+                    {% if is_owner %}
+                    <a href="{% url 'profiles:edit' %}" class="btn btn-outline-primary btn-sm">Edit profile</a>
+                    {% endif %}
+                </div>
+                <hr>
+                {% if show_email %}
+                <p><strong>Email:</strong> {{ profile.user.email }}</p>
+                {% endif %}
+                {% if profile.skills %}
+                <p><strong>Skills:</strong> {{ profile.skills }}</p>
+                {% endif %}
+                {% if profile.education %}
+                <p><strong>Education:</strong> {{ profile.education }}</p>
+                {% endif %}
+                {% if show_experience and profile.experience %}
+                <p><strong>Experience:</strong></p>
+                <p>{{ profile.experience|linebreaksbr }}</p>
+                {% endif %}
+                {% if profile.link_list %}
+                <p><strong>Links:</strong></p>
+                <ul class="list-unstyled">
+                    {% for link in profile.link_list %}
+                    <li><a href="{{ link }}" target="_blank">{{ link }}</a></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
