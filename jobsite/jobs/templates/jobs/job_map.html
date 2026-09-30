@@ -19,6 +19,13 @@
   @media (max-width: 800px) {
     .map-layout { grid-template-columns: 1fr; }
   }
+  .radius-field { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .radius-field legend { padding: 0; margin-bottom: 4px; }
+  .radius-option { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  .radius-option small { color: #718096; }
+  .radius-custom { display: flex; gap: 8px; align-items: center; }
+  .radius-custom input { width: 110px; }
+  .radius-custom input:disabled { background: #F1F5F9; color: #9AAABD; cursor: not-allowed; }
 </style>
 
 <section class="page-heading jobs-heading">
@@ -34,15 +41,33 @@
         <label for="map-location">Starting location</label>
         <input id="map-location" value="Georgia Tech, Atlanta" placeholder="City or address">
       </div>
-      <div class="filter-field">
-        <label for="radius">Commute radius</label>
-        <select id="radius">
-          <option value="5">5 miles</option>
-          <option value="10" selected>10 miles</option>
-          <option value="25">25 miles</option>
-          <option value="50">50 miles</option>
-        </select>
-      </div>
+
+      <fieldset class="filter-field radius-field">
+        <legend>Commute distance</legend>
+
+        <label class="radius-option">
+          <input type="radio" name="radius-mode" value="preferred"
+                 {% if preferred_radius %}checked{% else %}disabled{% endif %}>
+          <span>
+            Use my preferred commute
+            {% if preferred_radius %}({{ preferred_radius }} mi){% else %}<small>(log in and create a profile to use this)</small>{% endif %}
+          </span>
+        </label>
+
+        <label class="radius-option">
+          <input type="radio" name="radius-mode" value="custom"
+                 {% if not preferred_radius %}checked{% endif %}>
+          <span>Enter a distance manually</span>
+        </label>
+
+        <div class="radius-custom">
+          <input id="radius" type="number" min="0.1" step="any" value="10"
+                 inputmode="decimal" aria-label="Distance in miles"
+                 {% if preferred_radius %}disabled{% endif %}>
+          <span>miles</span>
+        </div>
+      </fieldset>
+
       <button class="button button-primary map-update" type="submit">Update map</button>
       <button class="button button-secondary" id="use-location" type="button">Use my location</button>
     </form>
@@ -64,6 +89,7 @@
   const defaultCenter = [33.7756, -84.3963];
   const map = L.map('job-map').setView(defaultCenter, 11);
   const markers = L.layerGroup().addTo(map);
+  const circleLayer = L.layerGroup().addTo(map);
 
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
@@ -73,14 +99,45 @@
   const form = document.querySelector('#map-filters');
   const locationInput = document.querySelector('#map-location');
   const radiusInput = document.querySelector('#radius');
+  const modeInputs = document.querySelectorAll('input[name="radius-mode"]');
   const resultCount = document.querySelector('#map-result-count');
   const status = document.querySelector('#map-status');
   const list = document.querySelector('#map-job-list');
+  const preferredRadius = {{ preferred_radius|default:"null" }};
+
   let center = defaultCenter;
+  let lastQuery = locationInput.value;  // matches the default center
 
   const money = value => value == null ? '' : `$${Number(value).toLocaleString()}`;
   const applyUrlTemplate = "{% url 'jobs:apply' 0 %}";  // renders as /jobs/0/apply/
   const applyUrl = id => applyUrlTemplate.replace('/0/', `/${id}/`);
+
+  function getRadius() {
+    const mode = document.querySelector('input[name="radius-mode"]:checked').value;
+    if (mode === 'preferred' && preferredRadius) return preferredRadius;
+    const value = parseFloat(radiusInput.value);
+    return value > 0 ? value : null;
+  }
+
+  function syncRadiusMode() {
+    const mode = document.querySelector('input[name="radius-mode"]:checked').value;
+    radiusInput.disabled = mode !== 'custom';
+  }
+
+  modeInputs.forEach(input => input.addEventListener('change', () => {
+    syncRadiusMode();
+    if (input.value === 'custom') radiusInput.focus();
+  }));
+
+  async function geocode(query) {
+    const url = 'https://nominatim.openstreetmap.org/search?' +
+      new URLSearchParams({q: query, format: 'json', limit: 1});
+    const response = await fetch(url, {headers: {'Accept': 'application/json'}});
+    if (!response.ok) throw new Error('Geocoding failed');
+    const results = await response.json();
+    if (!results.length) return null;
+    return [parseFloat(results[0].lat), parseFloat(results[0].lon)];
+  }
 
   function renderJobs(data) {
     markers.clearLayers();
@@ -88,7 +145,11 @@
     resultCount.textContent = `${data.count} job${data.count === 1 ? '' : 's'} in this area`;
 
     data.jobs.forEach(job => {
+      if (job.latitude == null || job.longitude == null) return;
+
       const marker = L.marker([job.latitude, job.longitude]).addTo(markers);
+
+      // Popup with a link to the application page
       const popup = document.createElement('div');
 
       const popupTitle = document.createElement('strong');
@@ -106,16 +167,25 @@
       popup.append(popupTitle, popupLocation, applyLink);
       marker.bindPopup(popup);
 
+      // Sidebar card (built with textContent so job data can't inject HTML)
       const card = document.createElement('article');
       card.className = 'map-job-card';
+
       const salary = job.salary_min || job.salary_max
         ? `${money(job.salary_min)}${job.salary_min && job.salary_max ? '–' : ''}${money(job.salary_max)}`
         : 'Salary not listed';
-      card.innerHTML = `
-        <h3>${job.title}</h3>
-        <p>${job.location}${job.distance_miles == null ? '' : ` · ${job.distance_miles} mi`}</p>
-        <span>${salary}</span>
-      `;
+
+      const cardTitle = document.createElement('h3');
+      cardTitle.textContent = job.title;
+
+      const cardLocation = document.createElement('p');
+      cardLocation.textContent =
+        job.location + (job.distance_miles == null ? '' : ` · ${job.distance_miles} mi`);
+
+      const cardSalary = document.createElement('span');
+      cardSalary.textContent = salary;
+
+      card.append(cardTitle, cardLocation, cardSalary);
       card.addEventListener('click', () => {
         map.setView([job.latitude, job.longitude], 14);
         marker.openPopup();
@@ -124,28 +194,58 @@
     });
 
     if (!data.count) {
-      list.innerHTML = '<p class="empty-copy">No jobs are available within this radius.</p>';
+      const empty = document.createElement('p');
+      empty.className = 'empty-copy';
+      empty.textContent = 'No jobs are available within this radius.';
+      list.appendChild(empty);
     }
   }
 
   async function loadJobs() {
+    const radius = getRadius();
+    if (radius === null) {
+      status.textContent = 'Enter a distance greater than 0 miles.';
+      return;
+    }
     status.textContent = 'Updating results…';
-    const params = new URLSearchParams({lat: center[0], lng: center[1], radius: radiusInput.value});
+    const params = new URLSearchParams({lat: center[0], lng: center[1], radius});
     try {
       const response = await fetch(`{% url 'jobs:map_data' %}?${params}`);
       if (!response.ok) throw new Error('Unable to load jobs');
       const data = await response.json();
       renderJobs(data);
-      map.setView(center, Number(radiusInput.value) <= 10 ? 11 : 9);
-      status.textContent = locationInput.value;
+
+      circleLayer.clearLayers();
+      const circle = L.circle(center, {radius: radius * 1609.34, weight: 1}).addTo(circleLayer);
+      map.fitBounds(circle.getBounds());
+
+      status.textContent = `${locationInput.value} · within ${radius} mi`;
     } catch (error) {
       resultCount.textContent = 'Jobs could not be loaded';
       status.textContent = 'Please try again.';
     }
   }
 
-  form.addEventListener('submit', event => {
+  form.addEventListener('submit', async event => {
     event.preventDefault();
+    const query = locationInput.value.trim();
+
+    // Only look up the location if the text changed since the last search
+    if (query && query !== lastQuery) {
+      status.textContent = 'Finding location…';
+      try {
+        const found = await geocode(query);
+        if (!found) {
+          status.textContent = `Couldn't find "${query}". Try a city or full address.`;
+          return;
+        }
+        center = found;
+        lastQuery = query;
+      } catch (error) {
+        status.textContent = 'Location lookup failed. Please try again.';
+        return;
+      }
+    }
     loadJobs();
   });
 
@@ -158,14 +258,15 @@
     navigator.geolocation.getCurrentPosition(position => {
       center = [position.coords.latitude, position.coords.longitude];
       locationInput.value = 'Current location';
+      lastQuery = 'Current location';
       loadJobs();
     }, () => {
       status.textContent = 'We could not access your location.';
     });
   });
 
+  syncRadiusMode();
   loadJobs();
 })();
 </script>
 {% endblock %}
-

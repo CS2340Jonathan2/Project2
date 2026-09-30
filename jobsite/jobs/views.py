@@ -97,7 +97,9 @@ def job_recommendations(request):
 
 def job_map(request):
     """#7 page with the interactive Leaflet map. Jobs are loaded from map_data via JS."""
-    return render(request, 'jobs/job_map.html')
+    return render(request, 'jobs/job_map.html', {
+        'preferred_radius': _default_radius(request.user),  # None if logged out / no profile
+    })
 
 
 @login_required
